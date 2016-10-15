@@ -51,17 +51,17 @@ namespace Gaitcome2D
         string saveVideoPath;
         string readVideoPath;
         string testMultiImagesFolder;
-        string camaraFolder;
+        string cameraFolder;
         //int imageQualityWriter;
-        int imgCont;
-        DispatcherTimer timer = new DispatcherTimer();
+        int contFrames;
+        DispatcherTimer timerRecording = new DispatcherTimer();
         List<ImageSource> lstImgSour;
         private bool userIsDraggingSlider = false;
 
         // paid alternative
         ImageToVideo converter;
 
-        bool cam01, cam02;
+        bool cam0, cam1;
 
         #region imagePlayer
 
@@ -77,6 +77,9 @@ namespace Gaitcome2D
 
         #region Image processing Gait analysis
 
+         Image<Bgr, byte> infraredImage;
+         Image<Bgr, byte> colorImage; 
+
         Image<Bgr, byte> infraredImgCpy;
         Image<Gray, byte> grayImg;
         Image<Gray, byte> binaryImg;
@@ -90,13 +93,21 @@ namespace Gaitcome2D
 
         #endregion
 
+        #region Record TAB
+
+        bool isRecordingPathSelected;
+        string recordingVideoPath;
+
+
+        #endregion
+
 
         public MainWindow()
         {
             InitializeComponent();
             this.Loaded += new RoutedEventHandler(MainWindow_Loaded);
             this.Closing += new System.ComponentModel.CancelEventHandler(MainWindow_Closing);
-            timer.Tick += new EventHandler(timer_Tick);
+            timerRecording.Tick += new EventHandler(recording_Timer_Tick);
             //timer.Interval = 
 
             numCameras = 0;
@@ -107,9 +118,9 @@ namespace Gaitcome2D
             readVideoPath = @"C:\Users\kevin\Desktop\testCLEYE_75 FPS.avi";
             saveVideoPath = @"D:\Projects\Gaitcom\testMultiImages\";
             testMultiImagesFolder = @"D:\Projects\Gaitcom\testMultiImages\";
-            camaraFolder = @"cam";
-            cam01 = cam02 = false;
-            imgCont = 0;
+            cameraFolder = @"cam";
+            cam0 = cam1 = false;
+            contFrames = 0;
 
             // paid alternative
             converter = new ImageToVideo();
@@ -120,7 +131,7 @@ namespace Gaitcome2D
 
             #region imagePlayer
 
-            timerImagePlayer.Tick += new EventHandler(timerImagePlayer_Tick);
+            timerImagePlayer.Tick += new EventHandler(imagePlayer_Timer_Tick);
             setTimerIntervalImagePlayer();
 
             isImagePlayerDataLoaded = false;
@@ -142,6 +153,13 @@ namespace Gaitcome2D
             angles = new List<double>();
             isDrawAxis = true;
             readImagePath = "";
+
+            #endregion
+
+            #region Record TAB
+
+            isRecordingPathSelected = false;
+            recordingVideoPath = "";
 
             #endregion
 
@@ -168,14 +186,25 @@ namespace Gaitcome2D
             if (numCameras >= 1)
             {
                 cameraImage1.Device.Create(CLEyeCameraDevice.CameraUUID(0));
-                cam01 = true;
+                cam0 = true;
             }
             if (numCameras == 2)
             {
                 cameraImage2.Device.Create(CLEyeCameraDevice.CameraUUID(1));
-                cam02 = true;
+                cam1 = true;
             }
             #endregion
+
+
+            allCamerasConnectedStart();
+            checkConnectedCameras();
+
+        }
+
+        private void checkConnectedCameras()
+        {
+            if (cam0) ckbCamera00.IsChecked = true;
+            if (cam1) ckbCamera01.IsChecked = true;
 
         }
 
@@ -197,11 +226,11 @@ namespace Gaitcome2D
             #endregion
         }
 
-        private void timer_Tick(object sender, EventArgs e)
+        private void recording_Timer_Tick(object sender, EventArgs e)
         {
             if (isRecording)
             {
-                allCamerasWriteJpeg();
+                allCamerasWriteJpeg(recordingVideoPath + "\\" + cameraFolder);
             }
 
             //update the timestamp of timeline video
@@ -214,7 +243,7 @@ namespace Gaitcome2D
 
         }
 
-        private void timerImagePlayer_Tick(object sender, EventArgs e)
+        private void imagePlayer_Timer_Tick(object sender, EventArgs e)
         {
             if (imagePlayerValue <= sliImageProgress.Maximum)
             {
@@ -303,9 +332,9 @@ namespace Gaitcome2D
 
             // Add images and set slide durations and transition effects
             Slide slide;
-            for (int i = 0; i < imgCont - 3; i++)
+            for (int i = 0; i < contFrames - 3; i++)
             {
-                slide = converter.AddImageFromFileName(testMultiImagesFolder + camaraFolder + "01" + @"\img" + i + ".jpg");
+                slide = converter.AddImageFromFileName(testMultiImagesFolder + cameraFolder + "01" + @"\img" + i + ".jpg");
                 //slide.InEffect = TransitionEffectType.teFade;
                 //slide.OutEffect = TransitionEffectType.teFade;
                 slide.Duration = 10;//1000/FPS; 
@@ -461,7 +490,7 @@ namespace Gaitcome2D
                 int startFrameIndex = startAtSecond;
                 int stopFrameIndex = stopAtSecond;
 
-                Bitmap bmp = ConvertToBitmap(testMultiImagesFolder + camaraFolder + "01\\" + "img" + 0 + ".jpg");
+                Bitmap bmp = ConvertToBitmap(testMultiImagesFolder + cameraFolder + "01\\" + "img" + 0 + ".jpg");
 
                 VideoStream newStream = newFile.AddVideoStream(
                      false,
@@ -471,7 +500,7 @@ namespace Gaitcome2D
 
                 for (int n = startFrameIndex + 1; n <= stopFrameIndex; n++)
                 {
-                    bmp = ConvertToBitmap(testMultiImagesFolder + camaraFolder + "01\\" + "img" + n + ".jpg");
+                    bmp = ConvertToBitmap(testMultiImagesFolder + cameraFolder + "01\\" + "img" + n + ".jpg");
                     newStream.AddFrame(bmp);
                 }
 
@@ -529,32 +558,90 @@ namespace Gaitcome2D
 
         #endregion
 
-        private void allCamerasWriteJpeg()
+        #region Record TAB methods
+
+        private void btnRecordingSavePath_Click(object sender, RoutedEventArgs e)
         {
-            if (cam01)
-                bitmapSourceToBitmap(cameraImage1.Device.BitmapSource).Save(testMultiImagesFolder + camaraFolder + "01\\" + "img" + imgCont + ".jpg", ImageFormat.Jpeg);
-            if (cam02)
-                bitmapSourceToBitmap(cameraImage2.Device.BitmapSource).Save(testMultiImagesFolder + camaraFolder + "02\\" + "img" + imgCont + ".jpg", ImageFormat.Jpeg);
+            if (!isRecordingPathSelected)
+            {
+                FolderBrowserDialog fbd = new FolderBrowserDialog();
+
+                DialogResult result = fbd.ShowDialog();
+
+                if (!string.IsNullOrWhiteSpace(fbd.SelectedPath))
+                {
+                    recordingVideoPath = fbd.SelectedPath;
+                    //files = Directory.GetFiles(fbd.SelectedPath);
+
+                    //Create new directories, if not exist, per each camera connected
+                    createCameraFolders();
+                    isRecordingPathSelected = true;
+
+                }
+            }
+
+        }
+
+        private void createCameraFolders()
+        {
+            for (int i = 0; i < 1; i++)
+            {
+                // If directory does not exist, create it. 
+                string newCameraPath = recordingVideoPath+ "\\" + cameraFolder + i;
+                if (!Directory.Exists(newCameraPath))
+                {
+                    Directory.CreateDirectory(newCameraPath);
+                }
+            }
+        }
+
+
+        private bool emptyFilesInCameraFolders()
+        {
+            string [] pathToCheck;
+            for (int i = 0; i < numCameras; i++)
+            {
+                pathToCheck = Directory.GetFiles(recordingVideoPath + "\\" + cameraFolder + i.ToString());
+                if (pathToCheck.Length > 0)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+
+        #endregion
+
+        private void allCamerasWriteJpeg(string path)
+        {
+            //recordingVideoPath + "\\" + cameraFolder + i.ToString()
+            if (cam0)
+                bitmapSourceToBitmap(cameraImage1.Device.BitmapSource).Save(path + "0\\" + "img" + contFrames + ".jpg", ImageFormat.Jpeg);
+                //bitmapSourceToBitmap(cameraImage1.Device.BitmapSource).Save(testMultiImagesFolder + cameraFolder + "01\\" + "img" + imgCont + ".jpg", ImageFormat.Jpeg);
+            if (cam1)
+                bitmapSourceToBitmap(cameraImage2.Device.BitmapSource).Save(path + "1\\" + "img" + contFrames + ".jpg", ImageFormat.Jpeg);
 
             //GetBitmap(cameraImage2.Device.BitmapSource).Save(@"D:\Projects\test_images_from_ps3_02\img" + imgCont + ".jpg", ImageFormat.Jpeg);
 
-            imgCont++;
+            contFrames++;
         }
 
         private void allCamerasConnectedStop()
         {
-            if (cam01) cameraImage1.Device.Stop();
-            if (cam02) cameraImage2.Device.Stop();
+            if (cam0) cameraImage1.Device.Stop();
+            if (cam1) cameraImage2.Device.Stop();
         }
 
         private void allCamerasConnectedStart()
         {
-            if (cam01) cameraImage1.Device.Start();
-            if (cam02) cameraImage2.Device.Start();
+            if (cam0) cameraImage1.Device.Start();
+            if (cam1) cameraImage2.Device.Start();
         }
 
         #region Media player methods
 
+        
         private void btnOpen_Click(object sender, RoutedEventArgs e)
         {
 
@@ -584,21 +671,17 @@ namespace Gaitcome2D
 
                     if (!string.IsNullOrWhiteSpace(fbd.SelectedPath))
                     {
-                        files = Directory.GetFiles(fbd.SelectedPath);
-                        System.Windows.Forms.MessageBox.Show("Files found: " + files.Length.ToString() + "  ||  " + "Path:  " + fbd.SelectedPath, "Message");
-                        readImagePath = fbd.SelectedPath;
+                        recordingVideoPath = fbd.SelectedPath;
+                        // recordingVideoPath + "\\" + cameraFolder + i.ToString()
 
-                        sliImageProgress.Maximum = Directory.GetFiles(fbd.SelectedPath).Length - 1;
-                        isImagePlayerDataLoaded = true;
-                        SpeedSlider.Value = DEFAULT_SPEED_SLIDER_VALUE;
-                        setTimerIntervalImagePlayer();
-                        statusImagePlayerOpened();
+                        setImagePlayerValues(recordingVideoPath, 1, fbd.SelectedPath.Length);
                     }
                 }
                 else
                 {
                     System.Windows.Forms.MessageBox.Show("Desea abrir otro folder de imagenes", "Advertencia", MessageBoxButtons.OKCancel, MessageBoxIcon.Exclamation);
                     isImagePlayerDataLoaded = false;
+                    btnOpen_Click(sender,e);
 
                     //save work of therapist
 
@@ -614,12 +697,36 @@ namespace Gaitcome2D
             #endregion
         }
 
+        private void setImagePlayerValues(string selectedPath,int flagOpenFrom, int totalFrames)
+        {
+            string msgFrom = "";
+            files = Directory.GetFiles(selectedPath);
+            if(flagOpenFrom == 0)//Record Tab
+            { 
+                msgFrom = "Número de frames grabados: "; 
+            }
+            else if (flagOpenFrom ==1)//Player Tab
+            { 
+                msgFrom = "Número de frames encontrados: ";
+                totalFrames = Directory.GetFiles(selectedPath + "\\" + cameraFolder + "0").Length; //this folder always will have data if one camera is connected at least
+            }
+
+            System.Windows.Forms.MessageBox.Show(msgFrom + totalFrames.ToString() + " en el siguiente directorio: " + selectedPath, "Message");
+            //readImagePath = selectedPath;
+
+            sliImageProgress.Maximum = totalFrames - 1; //TO DO : delimit the real frames to be readed, if there are more than two recoding in the same folder
+            isImagePlayerDataLoaded = true;
+            SpeedSlider.Value = DEFAULT_SPEED_SLIDER_VALUE;
+            setTimerIntervalImagePlayer();
+            statusImagePlayerOpened();
+        }
+
         private void btnPlay_Click(object sender, RoutedEventArgs e)
         {
             if (Media.Source != null)
             {
                 Media.Play();
-                timer.Start();//update the timeline numbers
+                timerRecording.Start();//update the timeline numbers
                 isPlaying = true;
             }
 
@@ -680,21 +787,51 @@ namespace Gaitcome2D
 
         private void btnCapture_Click(object sender, RoutedEventArgs e)
         {
-            if (!isRecording)
+            if (isRecordingPathSelected)
             {
-                allCamerasConnectedStart();
-                timer.Start();
-                isRecording = true;
-            }
-            else
-            {
-                allCamerasConnectedStop();
-                timer.Stop();
-                isRecording = false;
-                // paid dll 
-                //createVideoFromImages();
+                if (!isRecording)
+                {
+                    if (!emptyFilesInCameraFolders())
+                    {
+                        //here the savepath is changed
+                        messageRewriteRecordingFiles(sender, e);
+                    }
+                    
+                    timerRecording.Start();
+                    isRecording = true;
+                    btnCapture.Content = "Stop";
+                }
+                else
+                {
 
-                //imgCont = 0;
+                    timerRecording.Stop();
+                    isRecording = false;
+                    btnCapture.Content = "Record";
+                    setImagePlayerValues(recordingVideoPath + "\\" + cameraFolder + "0", 0,contFrames);
+
+                    // paid dll 
+                    //createVideoFromImages();
+
+                    contFrames = 0;
+                }
+            }
+
+        }
+
+        private void messageRewriteRecordingFiles(object sender, RoutedEventArgs e)
+        {
+            DialogResult result = System.Windows.Forms.MessageBox.Show("La ruta seleccionada no esta vacia, posiblemente contenga grabaciones realizadas con anterioridad. ¿Desea sobre escribir los archivos existentes?. De lo contrario, seleccione NO, y determine una nueva ruta de almacenamineto.",
+                       "Advertencia", MessageBoxButtons.YesNoCancel,
+                       MessageBoxIcon.Warning);
+
+            if (result == System.Windows.Forms.DialogResult.No)
+            {
+                isRecordingPathSelected = false;
+                btnRecordingSavePath_Click(sender, e);
+            }
+            else if (result == System.Windows.Forms.DialogResult.Yes)
+            {
+                return;
             }
 
         }
@@ -788,12 +925,12 @@ namespace Gaitcome2D
             if (numCameras >= 1)
             {
                 cameraImage1.Device.Create(CLEyeCameraDevice.CameraUUID(0));
-                cam01 = true;
+                cam0 = true;
             }
             if (numCameras == 2)
             {
                 cameraImage2.Device.Create(CLEyeCameraDevice.CameraUUID(1));
-                cam02 = true;
+                cam1 = true;
             }
             #endregion
 
@@ -915,7 +1052,7 @@ namespace Gaitcome2D
             {
                 //desordered enumeration in reding files by index, change the named files at saving frames moment
                 lblImageProgressStatus.Text = "Frame N°- " + imagePlayervalue.ToString();
-                Uri framePath = new Uri(testMultiImagesFolder + camaraFolder + "01" + @"\img" + imagePlayervalue.ToString() + ".jpg");
+                //Uri framePath = new Uri(testMultiImagesFolder + cameraFolder + "01" + @"\img" + imagePlayervalue.ToString() + ".jpg");
                 //Uri framePath = new Uri(files[imagePlayervalue]);
                 //imgPlayer.Source = new BitmapImage(framePath);
 
@@ -923,8 +1060,12 @@ namespace Gaitcome2D
                 //GaitAnalysis(new Image<Bgr, Byte>(framePath.ToString()), false);
 
                 //Image<Bgr, byte> imageGait = new Image<Bgr, Byte>("D:\\Projects\\Gaitcom2D\\testMultiImages\\test_images_from_AVI\\" + imagePlayervalue.ToString() + ".jpg");
-                Image<Bgr, byte> infraredImage = new Image<Bgr, Byte>(readImagePath + "\\img" + imagePlayervalue.ToString() + ".jpg");
-                Image<Bgr, byte> colorImage = new Image<Bgr, Byte>(testMultiImagesFolder + camaraFolder + "02" + @"\img" + imagePlayervalue.ToString() + ".jpg");
+
+                //recordingVideoPath + "\\" + cameraFolder 
+                infraredImage = new Image<Bgr, byte>(220, 140, new Bgr(System.Drawing.Color.Black));
+                colorImage = new Image<Bgr, byte>(320,240,new Bgr(System.Drawing.Color.Black));
+                if(cam0) infraredImage = new Image<Bgr, Byte>(recordingVideoPath + "\\" + cameraFolder  + @"0\\" + "img" + imagePlayervalue.ToString() + ".jpg");
+                if(cam1) colorImage =    new Image<Bgr, Byte>(recordingVideoPath + "\\" + cameraFolder  + @"1\\" + "img" + imagePlayervalue.ToString() + ".jpg");
 
 
 
