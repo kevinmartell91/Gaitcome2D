@@ -19,8 +19,6 @@ using System.IO;
 using System.Windows.Threading;
 using Microsoft.Win32;
 using System.Windows.Controls.Primitives;
-using GleamTech;
-using GleamTech.VideoUltimate;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Diagnostics;
@@ -77,7 +75,7 @@ namespace Gaitcome2D
 
         #region Image processing Gait analysis
 
-         Image<Bgr, byte> infraredImage;
+         Image<Bgr, byte> infraredBgrImage;
          Image<Bgr, byte> colorImage; 
 
         Image<Bgr, byte> infraredImgCpy;
@@ -87,9 +85,10 @@ namespace Gaitcome2D
         int blobCount;
         int countFrames;
         List<List<System.Drawing.PointF>> markersHistory;
-        List<double> angles;
-        bool isDrawAxis;
+        bool isDrawingAxis;
         string readImagePath;
+        bool isLeftSagittalPlane;
+        bool isCapturingAngles;
 
         #endregion
 
@@ -97,6 +96,7 @@ namespace Gaitcome2D
 
         bool isRecordingPathSelected;
         string recordingVideoPath;
+        int indexInfraredCamera;
 
 
         #endregion
@@ -150,9 +150,10 @@ namespace Gaitcome2D
             blobCount = 0;
             countFrames = 0;
             markersHistory = new List<List<PointF>>();
-            angles = new List<double>();
-            isDrawAxis = true;
+            isDrawingAxis = true;
             readImagePath = "";
+            isLeftSagittalPlane = false;
+            isCapturingAngles = false;
 
             #endregion
 
@@ -160,6 +161,7 @@ namespace Gaitcome2D
 
             isRecordingPathSelected = false;
             recordingVideoPath = "";
+            indexInfraredCamera = 0;
 
             #endregion
 
@@ -181,24 +183,51 @@ namespace Gaitcome2D
             for (int i = 0; i < numCameras; i++)
             {
                 output.Items.Add(string.Format("CLEyeCamera #{0} UUID: {1}", i + 1, CLEyeCameraDevice.CameraUUID(i)));
+                tbxResultsPelvis.Text = CLEyeCameraDevice.CameraUUID(i).ToString();
             }
             // Create cameras, set some parameters and start capture
             if (numCameras >= 1)
             {
-                cameraImage1.Device.Create(CLEyeCameraDevice.CameraUUID(0));
+                cameraImage0.Device.Create(CLEyeCameraDevice.CameraUUID(0));
+                //cameraImage0.Device.Rotation = 300;
+                //cameraImage0.Device.HorizontalFlip = true;
                 cam0 = true;
             }
             if (numCameras == 2)
             {
-                cameraImage2.Device.Create(CLEyeCameraDevice.CameraUUID(1));
+                cameraImage1.Device.Create(CLEyeCameraDevice.CameraUUID(1));
+                //cameraImage1.Device.Rotation = 300;
+                cameraImage1.Device.AutoGain = true;
+                cameraImage1.Device.Gain = 80;
+            
+                cameraImage1.Device.AutoExposure = true;
+                cameraImage1.Device.Exposure = 10;
+
+                cameraImage1.Device.AutoWhiteBalance = true;
+                cameraImage1.Device.WhiteBalanceRed = 4;
+                cameraImage1.Device.WhiteBalanceGreen = 4;
+                cameraImage1.Device.WhiteBalanceBlue = 4;
+
                 cam1 = true;
             }
             #endregion
 
-
+            indexInfraredCamera =  getIndexInfraredCamera();
             allCamerasConnectedStart();
             checkConnectedCameras();
 
+        }
+
+        private int getIndexInfraredCamera()
+        {
+            for (int i = 0; i < numCameras; i++)
+            {
+                if (CLEyeCameraDevice.CameraUUID(i).ToString() == "39f05022-8525-cde4-c19c-746220fec2e3")
+                {
+                    return i;
+                }
+            }
+            return -1;
         }
 
         private void checkConnectedCameras()
@@ -214,13 +243,13 @@ namespace Gaitcome2D
 
             if (numCameras >= 1)
             {
-                cameraImage1.Device.Stop();
-                cameraImage1.Device.Destroy();
+                cameraImage0.Device.Stop();
+                cameraImage0.Device.Destroy();
             }
             if (numCameras == 2)
             {
-                cameraImage2.Device.Stop();
-                cameraImage2.Device.Destroy();
+                cameraImage1.Device.Stop();
+                cameraImage1.Device.Destroy();
             }
 
             #endregion
@@ -231,6 +260,7 @@ namespace Gaitcome2D
             if (isRecording)
             {
                 allCamerasWriteJpeg(recordingVideoPath + "\\" + cameraFolder);
+                //cameraImage0.Device.BitmapSource.DownloadCompleted += objImage_DownloadCompleted;
             }
 
             //update the timestamp of timeline video
@@ -240,7 +270,6 @@ namespace Gaitcome2D
                 sliProgress.Maximum = Media.NaturalDuration.TimeSpan.TotalSeconds;
                 sliProgress.Value = Media.Position.TotalSeconds;
             }
-
         }
 
         private void imagePlayer_Timer_Tick(object sender, EventArgs e)
@@ -286,6 +315,18 @@ namespace Gaitcome2D
 
         //}
         #endregion
+
+        //private void objImage_DownloadCompleted(object sender, EventArgs e)
+        //{
+        //    JpegBitmapEncoder encoder = new JpegBitmapEncoder();
+        //    Guid photoID = System.Guid.NewGuid();
+        //    String photolocation = isRecordingPathSelected + "\\" + photoID.ToString() + ".jpg";  //file name 
+
+        //    encoder.Frames.Add(BitmapFrame.Create((BitmapImage)sender));
+
+        //    using (var filestream = new FileStream(photolocation, FileMode.Create))
+        //        encoder.Save(filestream);
+        //} 
 
         public Bitmap bitmapSourceToBitmap(BitmapSource source)
         {
@@ -361,7 +402,7 @@ namespace Gaitcome2D
          */
         public void getFrameByIndex(int index)
         {
-            AviManager aviManager = new AviManager(@"C:\Users\kevin\Desktop\testCLEYE_75 FPS.avi", true);
+            AviManager aviManager = new AviManager(@"C:\Users\kevin\Desktop\test2.avi", true);
             VideoStream aviStream = aviManager.GetVideoStream();
             aviStream.GetFrameOpen();
             aviStream.GetBitmap(index).Save(testMultiImagesFolder + "imgTest.jpg");
@@ -371,15 +412,15 @@ namespace Gaitcome2D
 
         public void getAllFramesFromVideo()
         {
-            AviManager aviManager = new AviManager(@"C:\Users\kevin\Desktop\testCLEYE_75 FPS.avi", true);
+            AviManager aviManager = new AviManager(@"C:\Users\kevin\Desktop\test2.avi", true);
             VideoStream stream = aviManager.GetVideoStream();
             stream.GetFrameOpen();
 
-            String path = @"D:\Projects\Gaitcom2D\testMultiImages\testAviFilesImages\";
+            String path = @"D:\Projects\Gaitcom\testCreateFolder\cam0\";
             for (int n = 0; n < stream.CountFrames; n++)
             {
                 //stream.ExportBitmap(n, path + n.ToString() + ".bmp");
-                stream.GetBitmap(n).Save(path + n.ToString() + ".jpg");
+                stream.GetBitmap(n).Save(path + "img" + n.ToString() + ".jpg");
             }
 
             stream.GetFrameClose();
@@ -584,7 +625,7 @@ namespace Gaitcome2D
 
         private void createCameraFolders()
         {
-            for (int i = 0; i < 1; i++)
+            for (int i = 0; i < numCameras; i++)
             {
                 // If directory does not exist, create it. 
                 string newCameraPath = recordingVideoPath+ "\\" + cameraFolder + i;
@@ -598,14 +639,19 @@ namespace Gaitcome2D
 
         private bool emptyFilesInCameraFolders()
         {
-            string [] pathToCheck;
+            string [] folders;
             for (int i = 0; i < numCameras; i++)
             {
-                pathToCheck = Directory.GetFiles(recordingVideoPath + "\\" + cameraFolder + i.ToString());
-                if (pathToCheck.Length > 0)
+                string pathDirectory = recordingVideoPath + "\\" + cameraFolder + i.ToString();
+                if (Directory.Exists(pathDirectory))
                 {
-                    return false;
+                    folders = Directory.GetFiles(pathDirectory);
+                    if (folders.Length > 0)
+                    {
+                        return false;
+                    }
                 }
+               
             }
             return true;
         }
@@ -615,28 +661,33 @@ namespace Gaitcome2D
 
         private void allCamerasWriteJpeg(string path)
         {
-            //recordingVideoPath + "\\" + cameraFolder + i.ToString()
-            if (cam0)
-                bitmapSourceToBitmap(cameraImage1.Device.BitmapSource).Save(path + "0\\" + "img" + contFrames + ".jpg", ImageFormat.Jpeg);
-                //bitmapSourceToBitmap(cameraImage1.Device.BitmapSource).Save(testMultiImagesFolder + cameraFolder + "01\\" + "img" + imgCont + ".jpg", ImageFormat.Jpeg);
-            if (cam1)
-                bitmapSourceToBitmap(cameraImage2.Device.BitmapSource).Save(path + "1\\" + "img" + contFrames + ".jpg", ImageFormat.Jpeg);
-
-            //GetBitmap(cameraImage2.Device.BitmapSource).Save(@"D:\Projects\test_images_from_ps3_02\img" + imgCont + ".jpg", ImageFormat.Jpeg);
-
+            if (indexInfraredCamera == 0 || indexInfraredCamera == -1)
+            {
+                if (cam0)
+                    bitmapSourceToBitmap(cameraImage0.Device.BitmapSource).Save(path + "0\\" + "img" + contFrames + ".jpg", ImageFormat.Jpeg);
+                if (cam1)
+                    bitmapSourceToBitmap(cameraImage1.Device.BitmapSource).Save(path + "1\\" + "img" + contFrames + ".jpg", ImageFormat.Jpeg);
+            }
+            else if (indexInfraredCamera == 1)
+            {
+                if (cam0)
+                    bitmapSourceToBitmap(cameraImage0.Device.BitmapSource).Save(path + "1\\" + "img" + contFrames + ".jpg", ImageFormat.Jpeg);
+                if (cam1)
+                    bitmapSourceToBitmap(cameraImage1.Device.BitmapSource).Save(path + "0\\" + "img" + contFrames + ".jpg", ImageFormat.Jpeg);
+            }
             contFrames++;
         }
 
         private void allCamerasConnectedStop()
         {
-            if (cam0) cameraImage1.Device.Stop();
-            if (cam1) cameraImage2.Device.Stop();
+            if (cam0) cameraImage0.Device.Stop();
+            if (cam1) cameraImage1.Device.Stop();
         }
 
         private void allCamerasConnectedStart()
         {
-            if (cam0) cameraImage1.Device.Start();
-            if (cam1) cameraImage2.Device.Start();
+            if (cam0) cameraImage0.Device.Start();
+            if (cam1) cameraImage1.Device.Start();
         }
 
         #region Media player methods
@@ -672,6 +723,7 @@ namespace Gaitcome2D
                     if (!string.IsNullOrWhiteSpace(fbd.SelectedPath))
                     {
                         recordingVideoPath = fbd.SelectedPath;
+                        
                         // recordingVideoPath + "\\" + cameraFolder + i.ToString()
 
                         setImagePlayerValues(recordingVideoPath, 1, fbd.SelectedPath.Length);
@@ -699,6 +751,7 @@ namespace Gaitcome2D
 
         private void setImagePlayerValues(string selectedPath,int flagOpenFrom, int totalFrames)
         {
+            
             string msgFrom = "";
             files = Directory.GetFiles(selectedPath);
             if(flagOpenFrom == 0)//Record Tab
@@ -706,9 +759,14 @@ namespace Gaitcome2D
                 msgFrom = "Número de frames grabados: "; 
             }
             else if (flagOpenFrom ==1)//Player Tab
-            { 
+            {
+                cam0 = false;
+                cam1 = false;
                 msgFrom = "Número de frames encontrados: ";
-                totalFrames = Directory.GetFiles(selectedPath + "\\" + cameraFolder + "0").Length; //this folder always will have data if one camera is connected at least
+                if (Directory.Exists(selectedPath + "\\" + cameraFolder + "0") && (Directory.GetFiles(selectedPath + "\\" + cameraFolder + "0").Length != 0)) cam0 = true;
+                if (Directory.Exists(selectedPath + "\\" + cameraFolder + "1") && (Directory.GetFiles(selectedPath + "\\" + cameraFolder + "1").Length != 0)) cam1 = true;
+                if(cam0)
+                    totalFrames = Directory.GetFiles(selectedPath + "\\" + cameraFolder + "0").Length; //this folder always will have data if one camera is connected at least
             }
 
             System.Windows.Forms.MessageBox.Show(msgFrom + totalFrames.ToString() + " en el siguiente directorio: " + selectedPath, "Message");
@@ -888,13 +946,13 @@ namespace Gaitcome2D
             if (isImagePlayerDataLoaded)
             {
 
-                if (!isDrawAxis)
+                if (!isDrawingAxis)
                 {
-                    isDrawAxis = true;
+                    isDrawingAxis = true;
                 }
                 else
                 {
-                    isDrawAxis = false;
+                    isDrawingAxis = false;
                 }
                 updateImageFrame(imagePlayerValue);
 
@@ -905,34 +963,34 @@ namespace Gaitcome2D
 
         private void btnForzeInitCameras_Click(object sender, RoutedEventArgs e)
         {
+            getAllFramesFromVideo();
+            //#region Initialize Cleye cameras resources
 
-            #region Initialize Cleye cameras resources
-
-            // Query for number of connected cameras
-            numCameras = CLEyeCameraDevice.CameraCount;
-            if (numCameras == 0)
-            {
-                System.Windows.MessageBox.Show("Could not find any PS3Eye cameras!");
-                return;
-            }
-            output.Items.Add(string.Format("Found {0} CLEyeCamera devices", numCameras));
-            // Show camera's UUIDs
-            for (int i = 0; i < numCameras; i++)
-            {
-                output.Items.Add(string.Format("CLEyeCamera #{0} UUID: {1}", i + 1, CLEyeCameraDevice.CameraUUID(i)));
-            }
-            // Create cameras, set some parameters and start capture
-            if (numCameras >= 1)
-            {
-                cameraImage1.Device.Create(CLEyeCameraDevice.CameraUUID(0));
-                cam0 = true;
-            }
-            if (numCameras == 2)
-            {
-                cameraImage2.Device.Create(CLEyeCameraDevice.CameraUUID(1));
-                cam1 = true;
-            }
-            #endregion
+            //// Query for number of connected cameras
+            //numCameras = CLEyeCameraDevice.CameraCount;
+            //if (numCameras == 0)
+            //{
+            //    System.Windows.MessageBox.Show("Could not find any PS3Eye cameras!");
+            //    return;
+            //}
+            //output.Items.Add(string.Format("Found {0} CLEyeCamera devices", numCameras));
+            //// Show camera's UUIDs
+            //for (int i = 0; i < numCameras; i++)
+            //{
+            //    output.Items.Add(string.Format("CLEyeCamera #{0} UUID: {1}", i + 1, CLEyeCameraDevice.CameraUUID(i)));
+            //}
+            //// Create cameras, set some parameters and start capture
+            //if (numCameras >= 1)
+            //{
+            //    cameraImage0.Device.Create(CLEyeCameraDevice.CameraUUID(0));
+            //    cam0 = true;
+            //}
+            //if (numCameras == 2)
+            //{
+            //    cameraImage1.Device.Create(CLEyeCameraDevice.CameraUUID(1));
+            //    cam1 = true;
+            //}
+            //#endregion
 
         }
 
@@ -1050,33 +1108,65 @@ namespace Gaitcome2D
         {
             if (isImagePlayerDataLoaded)
             {
-                //desordered enumeration in reding files by index, change the named files at saving frames moment
                 lblImageProgressStatus.Text = "Frame N°- " + imagePlayervalue.ToString();
-                //Uri framePath = new Uri(testMultiImagesFolder + cameraFolder + "01" + @"\img" + imagePlayervalue.ToString() + ".jpg");
-                //Uri framePath = new Uri(files[imagePlayervalue]);
-                //imgPlayer.Source = new BitmapImage(framePath);
-
-
-                //GaitAnalysis(new Image<Bgr, Byte>(framePath.ToString()), false);
-
-                //Image<Bgr, byte> imageGait = new Image<Bgr, Byte>("D:\\Projects\\Gaitcom2D\\testMultiImages\\test_images_from_AVI\\" + imagePlayervalue.ToString() + ".jpg");
-
-                //recordingVideoPath + "\\" + cameraFolder 
-                infraredImage = new Image<Bgr, byte>(220, 140, new Bgr(System.Drawing.Color.Black));
+                
+                // set black frames if there are no Loaded images
+                infraredBgrImage = new Image<Bgr, byte>(220, 140, new Bgr(System.Drawing.Color.Black));
                 colorImage = new Image<Bgr, byte>(320,240,new Bgr(System.Drawing.Color.Black));
-                if(cam0) infraredImage = new Image<Bgr, Byte>(recordingVideoPath + "\\" + cameraFolder  + @"0\\" + "img" + imagePlayervalue.ToString() + ".jpg");
-                if(cam1) colorImage =    new Image<Bgr, Byte>(recordingVideoPath + "\\" + cameraFolder  + @"1\\" + "img" + imagePlayervalue.ToString() + ".jpg");
-
-
+                
+                if (cam0) infraredBgrImage = new Image<Bgr, Byte>(recordingVideoPath + "\\" + cameraFolder + @"0\\" + "img" + imagePlayervalue.ToString() + ".jpg");
+                if (cam1) colorImage = new Image<Bgr, Byte>(recordingVideoPath + "\\" + cameraFolder + @"1\\" + "img" + imagePlayervalue.ToString() + ".jpg");
 
                 //if (imagePlayervalue % 2 == 0)
                 //{
-                //    imageGait = imageGait.Flip(FLIP.HORIZONTAL);
+                    ///horizontalCameraConfiguration();
                 //}
-                GaitAnalysis(infraredImage,colorImage, false);
+                //verticalCameraConfigutation();
+
+                if (!isLeftSagittalPlane)
+                {
+                    infraredBgrImage = infraredBgrImage.Flip(FLIP.HORIZONTAL);
+                }
+
+                GaitAnalysis(infraredBgrImage, colorImage, isCapturingAngles);
 
 
             }
+        }
+
+        private void btnSagittalPlane_Click(Object sender, RoutedEventArgs e)
+        {
+            if (!isLeftSagittalPlane)
+            {
+                isLeftSagittalPlane = true;
+                btntSagittalPlane.Content = "Izquierda";
+
+            }
+            else 
+            {
+                isLeftSagittalPlane = false;
+                btntSagittalPlane.Content = "Derecha";
+            }
+
+            imagePlayerValue = (int)sliImageProgress.Value;
+            updateImageFrame(imagePlayerValue);
+        }
+
+        private void verticalCameraConfigutation()
+        {
+            // Vertical configuration. Pointing to the patient => IRcam (Top)  &  ColorCam (bottom)
+            // OK
+            colorImage = colorImage.Rotate(-180, new Bgr(0, 0, 0));
+            //colorImage = colorImage.Flip(FLIP.HORIZONTAL);
+        }
+
+        private void horizontalCameraConfiguration()
+        {
+            // Horizontal configuration. Pointing to the patient => IRcam (right)  &  ColorCam (left)
+            // OK
+            colorImage = colorImage.Rotate(90, new Bgr(0, 0, 0));
+            infraredBgrImage = infraredBgrImage.Rotate(-90, new Bgr(0, 0, 0));
+
         }
 
         private void sliderMinUmbral_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -1139,55 +1229,104 @@ namespace Gaitcome2D
 
         #endregion
 
-        void readAllFramesFromVideo(string videoSourcePath)
-        {
-            using (var videoFrameReader = new VideoFrameReader(videoSourcePath))
-            {
-                var frameIndex = 0;
-                var videoDuration = videoFrameReader.Duration.TotalMilliseconds;
-                var totalFrames = videoFrameReader.GetEnumerator();
-                ImageSourceConverter c = new ImageSourceConverter();
-
-                while (videoFrameReader.Read())
-                {
-                    ////http://docs.gleamtech.com/videoultimate/html/using-videoultimate-in-a-project.htm
-                    //Console.WriteLine("Coded Frame Number: " + videoFrameReader.CurrentFrameNumber);
-                    //Console.WriteLine("Frame Index: " + frameIndex++);
-
-                    using (var frame = videoFrameReader.GetFrame()) //Do something with frame
-                    {
-                        //int frameBegin = 100;
-                        //int frameEnd =103;
-                        //if (frameBegin <= frameIndex && frameIndex <= frameEnd)
-                        if (true)
-                        {
-                            //videoFrameReader.Duration.ToString(
-                            frame.Save(@"D:\Projects\test_images_from_AVI\img" + frameIndex + ".jpg", ImageFormat.Jpeg);
-                            //ImageSource imageSource = new BitmapImage(new Uri(@"D:\Projects\test_images_from_ps3_01\img" + frameIndex + ".jpg"));
-                            //lstImgSour.Add(imageSource);
-                        }
-                        frameIndex++;
-                    }
-
-                }
-            }
-        }
-
         #region Image processing - Gait Analysis
 
-        private void GaitAnalysis(Image<Bgr, byte> infraredImg, Image<Bgr, byte> colorImg, bool captureAngles)
+        private void GaitAnalysis(Image<Bgr, byte> infraBgrImg, Image<Bgr, byte> colorImg, bool isCapturingAngles)
+        {
+            List<System.Drawing.PointF> lstRetMarkers = FindRetroreFlectiveMarkers(infraBgrImg);
+            
+            if (lstRetMarkers != null && lstRetMarkers.Count == 7)
+            {
+                Dictionary<string, PointF> dicMarkers = 
+                    LabelingMarkersWithHumanReferencePoints(lstRetMarkers);
+
+                DrawByColorsRetrorefelctiveMarkerLabels(dicMarkers, infraredImgCpy, 4, 2);
+                CalculateRetroreflectiveMarkersCentroid(dicMarkers, infraredImgCpy, false);
+
+                CalculatePelvisAngles(dicMarkers, infraredImgCpy, isDrawingAxis,isCapturingAngles);
+                CalculateHipAngles(dicMarkers, infraredImgCpy, isDrawingAxis, isCapturingAngles);
+                CalculateKneeAngles(dicMarkers, infraredImgCpy, isDrawingAxis, isCapturingAngles);
+                float lowerPointY = CalculateAnkleAngles(dicMarkers, infraredImgCpy, isDrawingAxis, isCapturingAngles);
+
+                if (isCapturingAngles)
+                {
+                    /// before this method i need to have a list(Pair<bool(InitalComtact),angle>) per each unit 
+                    /// in order to set the bool IC to TRUE or FLASE and know where IC begins  and end.
+                    //InitialContact_AutomaticRecognition(lowerPointY, isCapturingAngles);
+                }
+               
+
+
+
+                markersHistory.Add(lstRetMarkers);
+            }
+            
+            //DrawLinesHoriontal(dicMarkers, infraredImgCpy, true);
+
+            //colorImagePlayer.Source = ToBitmapSource(colorImg);
+            //dataImagePlayer.Source = ToBitmapSource(infraredImgCpy);
+            //binaryImagePlayer.Source = ToBitmapSource(grayImg);
+
+            binaryImagePlayer.Source = ToBitmapSource(colorImg);
+            colorImagePlayer.Source = ToBitmapSource(infraredImgCpy);
+            dataImagePlayer.Source = ToBitmapSource(grayImg);
+
+        }
+
+        private void DrawByColorsRetrorefelctiveMarkerLabels(Dictionary<string, PointF> dicMarkers, Image<Bgr, byte> bgrImg, float radious,int thickness)
+        {
+            
+            System.Drawing.PointF drawPointF;
+            CircleF c;
+
+            /// Calcaneus
+            drawPointF = new System.Drawing.PointF(dicMarkers["Calcaneus"].X, dicMarkers["Calcaneus"].Y);
+            c = new CircleF(drawPointF, radious);
+            bgrImg.Draw(c, new Bgr(System.Drawing.Color.Red), thickness);
+
+            /// Foot
+            drawPointF = new System.Drawing.PointF(dicMarkers["Foot"].X, dicMarkers["Foot"].Y);
+            c = new CircleF(drawPointF, radious);
+            bgrImg.Draw(c, new Bgr(System.Drawing.Color.Yellow), thickness);
+            
+            /// Ankle
+            drawPointF = new System.Drawing.PointF(dicMarkers["Ankle"].X, dicMarkers["Ankle"].Y);
+            c = new CircleF(drawPointF, radious);
+            bgrImg.Draw(c, new Bgr(System.Drawing.Color.Orange), thickness);
+
+            /// PosteriorSuperiorIliacSpine
+            drawPointF = new System.Drawing.PointF(dicMarkers["PosteriorSuperiorIliacSpine"].X, dicMarkers["PosteriorSuperiorIliacSpine"].Y);
+            c = new CircleF(drawPointF, radious);
+            bgrImg.Draw(c, new Bgr(System.Drawing.Color.HotPink), thickness);
+
+            /// AnteriorSuperiorIliacSpine
+            drawPointF = new System.Drawing.PointF(dicMarkers["AnteriorSuperiorIliacSpine"].X, dicMarkers["AnteriorSuperiorIliacSpine"].Y);
+            c = new CircleF(drawPointF, radious);
+            bgrImg.Draw(c, new Bgr(System.Drawing.Color.DarkSlateBlue), thickness);
+
+            /// Knee
+            drawPointF = new System.Drawing.PointF(dicMarkers["Knee"].X, dicMarkers["Knee"].Y);
+            c = new CircleF(drawPointF, radious);
+            bgrImg.Draw(c, new Bgr(System.Drawing.Color.Green), thickness);
+
+            /// AnteriorSuperiorIliacSpine
+            drawPointF = new System.Drawing.PointF(dicMarkers["Trochanter"].X, dicMarkers["Trochanter"].Y);
+            c = new CircleF(drawPointF, radious);
+            bgrImg.Draw(c, new Bgr(System.Drawing.Color.MediumPurple), thickness);
+        }
+
+        private List<System.Drawing.PointF> FindRetroreFlectiveMarkers(Image<Bgr, byte> bgrImg)
         {
             Contour<System.Drawing.Point> contours = null;
             List<System.Drawing.PointF> markers = null;
 
-            MCvScalar markerColor;
-
-            infraredImgCpy = infraredImg.Copy();
+            infraredImgCpy = bgrImg.Copy();
             grayImg = null;
 
-            grayImg = infraredImg.Convert<Gray, Byte>();
-            grayImg = grayImg.ThresholdBinary(new Gray(sliderMinUmbral.Value), new Gray(sliderMaxUmbral.Value));
+            grayImg = bgrImg.Convert<Gray, Byte>();
 
+            // retrive values from Slider
+            grayImg = grayImg.ThresholdBinary(new Gray(sliderMinUmbral.Value), new Gray(sliderMaxUmbral.Value));
 
             using (MemStorage stor = new MemStorage())
             {
@@ -1202,36 +1341,25 @@ namespace Gaitcome2D
                 for (int i = 0; contours != null; contours = contours.HNext)
                 {
                     i++;
+
                     float markerPosX = contours.GetMinAreaRect().center.X;
                     float markerPosY = contours.GetMinAreaRect().center.Y;
 
-                    MCvBox2D box = contours.GetMinAreaRect();
+                    MCvBox2D blobBox = contours.GetMinAreaRect();
 
-                    if ((contours.Area > Math.Pow(sliderMinSizeBlob.Value, 2)) && (contours.Area < Math.Pow(sliderMaxSizeBlob.Value, 2)))
+                    System.Drawing.PointF pointF = new System.Drawing.PointF(markerPosX, markerPosY);
+
+
+                    if ((contours.Area > Math.Pow(sliderMinSizeBlob.Value, 2)) && 
+                        (contours.Area < Math.Pow(sliderMaxSizeBlob.Value, 2)))
                     {
-
                         blobCount++;
-                        markerColor = new MCvScalar(0, 0, 255);
 
-                        CvInvoke.cvCircle(colorImg,
-                            new System.Drawing.Point((int)markerPosX, (int)markerPosY),
-                            1,
-                            markerColor, -1,
-                            LINE_TYPE.CV_AA,
-                            0);
+                        //DrawAllBlobsDetected(infraredImgCpy, blobBox);
+                        //DrawAllBlobPositions(infraredImgCpy, blobBox);
+                        //WriterAllBlobsPositions(blobBox);
 
-                        System.Drawing.PointF pointF = new System.Drawing.PointF(markerPosX, markerPosY);
-
-                        CircleF c = new CircleF(pointF, box.size.Width / 2);
-                        colorImg.Draw(c,
-                            new Bgr(System.Drawing.Color.Orange),
-                            1);
-
-                        markers.Add(pointF);
-
-                        /// Changes August
-                        //writerTextMarkerPosition(markerPosX, markerPosY);
-                        //showMarkerPosition(markerPosX, markerPosY);
+                        markers.Add(new System.Drawing.PointF(blobBox.center.X, blobBox.center.Y));
 
                     } // end if
 
@@ -1239,59 +1367,70 @@ namespace Gaitcome2D
 
             } // end mem usage
 
-
-            if (markers.Count == 7)
-            {
-                Dictionary<string, PointF> dicMarkers = labelMarkers(markers, infraredImgCpy, captureAngles);
-                CalculateKneeAngles(dicMarkers, infraredImgCpy, captureAngles);
-                CalculateAnkleAngles(dicMarkers, infraredImgCpy, captureAngles);
-                CalculatePelvisAngles(dicMarkers, infraredImgCpy, captureAngles);
-                CalculateHipAngles(dicMarkers, infraredImgCpy, captureAngles);
-                CalculateCentroid(dicMarkers, infraredImgCpy, captureAngles);
-
-                markersHistory.Add(markers);
-            }
-
-            //DrawLinesHoriontal(markers, original_Frame, captureAngles);
-
-            colorImagePlayer.Source = ToBitmapSource(colorImg);
-            dataImagePlayer.Source = ToBitmapSource(infraredImgCpy);
-            binaryImagePlayer.Source = ToBitmapSource(grayImg);
-
-            //txtBlobCount.Text = blobCount.ToString();
-
-
+            return markers;
         }
 
-        private void CalculateCentroid(Dictionary<string, PointF> dicMarkers, Image<Bgr, byte> original_Frame, bool captureAngles)
+        private void DrawAllBlobsDetected(Image<Bgr, byte> bgrImg, MCvBox2D blobBox)
         {
+            MCvScalar markerColor = new MCvScalar(0, 0, 255);
 
-            float xm = (dicMarkers["AnteriorSuperiorIliacSpine"].X +
-                        dicMarkers["PosteriorSuperiorIliacSpine"].X +
-                        dicMarkers["Knee"].X +
-                        dicMarkers["Ankle"].X +
-                        dicMarkers["Foot"].X +
-                        dicMarkers["Calcaneus"].X +
-                        dicMarkers["Trochanter"].X
-                        ) / 7;
-            float ym = (dicMarkers["AnteriorSuperiorIliacSpine"].Y +
-                      dicMarkers["PosteriorSuperiorIliacSpine"].Y +
-                      dicMarkers["Knee"].Y +
-                      dicMarkers["Ankle"].Y +
-                      dicMarkers["Foot"].Y +
-                      dicMarkers["Calcaneus"].Y +
-                      dicMarkers["Trochanter"].Y
-                      ) / 7;
+            CvInvoke.cvCircle(bgrImg,
+                              new System.Drawing.Point((int)blobBox.center.X, (int)blobBox.center.Y),
+                              1,
+                              markerColor, -1,
+                              LINE_TYPE.CV_AA,
+                              0);
 
-            System.Drawing.PointF centroidAllMarkers = new System.Drawing.PointF(xm, ym);
-
-            CircleF c = new CircleF(centroidAllMarkers, 10);
-            original_Frame.Draw(c,
-                new Bgr(System.Drawing.Color.Aquamarine),
-                2);
-
+            CircleF c = new CircleF(new System.Drawing.PointF(blobBox.center.X, blobBox.center.Y), blobBox.size.Width / 2);
+                                    bgrImg.Draw(c,
+                                    new Bgr(System.Drawing.Color.Orange),
+                                    1);
         }
 
+        private void DrawAllBlobPositions(Image<Bgr, byte> brgImg, MCvBox2D blobBox)
+        {
+            MCvFont f = new MCvFont(FONT.CV_FONT_HERSHEY_COMPLEX, 0.5, 0.5);
+            brgImg.Draw("  " + (blobBox.center.X).ToString() + "\n" + (blobBox.center.Y).ToString(), ref f, new System.Drawing.Point((int)blobBox.center.X, (int)blobBox.center.Y), new Bgr(121, 116, 40));
+            //original_Frame.Draw(contours.Area.ToString(), ref f, new System.Drawing.Point((int)markerPosX, (int)markerPosY), new Bgr(121, 116, 40));
+        }
+
+        private void WriterAllBlobsPositions(MCvBox2D blobBox)
+        {
+            tbxResultsPelvis.AppendText("{" + blobBox.center.X.ToString() + " - " + blobBox.center.Y.ToString() + "}");
+            tbxResultsPelvis.AppendText(Environment.NewLine);
+        }
+
+        private void CalculateRetroreflectiveMarkersCentroid(Dictionary<string, PointF> dicMarkers, Image<Bgr, byte> bgrImg, bool isDrawAxis)
+        {
+            if (isDrawAxis)
+            {
+
+                float xm = (dicMarkers["AnteriorSuperiorIliacSpine"].X +
+                            dicMarkers["PosteriorSuperiorIliacSpine"].X +
+                            dicMarkers["Knee"].X +
+                            dicMarkers["Ankle"].X +
+                            dicMarkers["Foot"].X +
+                            dicMarkers["Calcaneus"].X +
+                            dicMarkers["Trochanter"].X
+                            ) / 7;
+                float ym = (dicMarkers["AnteriorSuperiorIliacSpine"].Y +
+                          dicMarkers["PosteriorSuperiorIliacSpine"].Y +
+                          dicMarkers["Knee"].Y +
+                          dicMarkers["Ankle"].Y +
+                          dicMarkers["Foot"].Y +
+                          dicMarkers["Calcaneus"].Y +
+                          dicMarkers["Trochanter"].Y
+                          ) / 7;
+
+                System.Drawing.PointF centroidAllMarkers = new System.Drawing.PointF(xm, ym);
+
+                CircleF c = new CircleF(centroidAllMarkers, 10);
+                bgrImg.Draw(c,
+                    new Bgr(System.Drawing.Color.Aquamarine),
+                    2);
+
+            }
+        }
 
         struct PairDistance
         {
@@ -1317,7 +1456,7 @@ namespace Gaitcome2D
 
         }
 
-        private Dictionary<string, PointF> labelMarkers(List<PointF> markers, Image<Bgr, byte> original_Frame, bool captureAngles)
+        private Dictionary<string, PointF> LabelingMarkersWithHumanReferencePoints(List<PointF> markers)
         {
 
             /// Creating a list of pairs where is saved the distances 
@@ -1337,7 +1476,7 @@ namespace Gaitcome2D
                     //if not the same marker
                     if (i != j)
                     {
-                        double distance = calculateEuclideanDistance(markers[i], markers[j]);
+                        double distance = CalculateEuclideanDistance(markers[i], markers[j]);
 
                         if (!firstDistCalculated)
                         {
@@ -1393,25 +1532,8 @@ namespace Gaitcome2D
                 posCalcaneusMarker = 3 - posfootMarker - posAnkleMarker;
             }
 
-            /// testing by drawing
-            /// 
+           
 
-            System.Drawing.PointF calcaneusPointF = new System.Drawing.PointF(markers[posCalcaneusMarker].X, markers[posCalcaneusMarker].Y);
-            System.Drawing.PointF footPointF = new System.Drawing.PointF(markers[posfootMarker].X, markers[posfootMarker].Y);
-            System.Drawing.PointF anklePointF = new System.Drawing.PointF(markers[posAnkleMarker].X, markers[posAnkleMarker].Y);
-
-            CircleF c = new CircleF(calcaneusPointF, 10);
-            original_Frame.Draw(c,
-                new Bgr(System.Drawing.Color.Red),
-                2);
-            c = new CircleF(anklePointF, 10);
-            original_Frame.Draw(c,
-                new Bgr(System.Drawing.Color.Orange),
-                2);
-            c = new CircleF(footPointF, 10);
-            original_Frame.Draw(c,
-                new Bgr(System.Drawing.Color.Yellow),
-                2);
 
 
             // Detectiting Iliac Spines, in order to do this must be determinates 
@@ -1428,21 +1550,7 @@ namespace Gaitcome2D
                 posAnteriorSuperiorIliacSpineMarker = 6;
             }
 
-            /// testing by drawing
-            /// 
-
-            System.Drawing.PointF posteriorPointF = new System.Drawing.PointF(markers[posPosteriorSuperiorIliacSpineMarker].X, markers[posPosteriorSuperiorIliacSpineMarker].Y);
-            System.Drawing.PointF anteriorPointF = new System.Drawing.PointF(markers[posAnteriorSuperiorIliacSpineMarker].X, markers[posAnteriorSuperiorIliacSpineMarker].Y);
-
-            c = new CircleF(posteriorPointF, 10);
-            original_Frame.Draw(c,
-                new Bgr(System.Drawing.Color.Red),
-                2);
-            c = new CircleF(anteriorPointF, 10);
-            original_Frame.Draw(c,
-                new Bgr(System.Drawing.Color.Yellow),
-                2);
-
+           
 
             /// labeling the marker by its names
             /// 
@@ -1509,220 +1617,255 @@ namespace Gaitcome2D
             return dicJoints;
         }
 
-        private double calculateEuclideanDistance(PointF pointF1, PointF pointF2)
+        private double CalculateEuclideanDistance(PointF pointF1, PointF pointF2)
         {
             return Math.Sqrt(Math.Pow(pointF1.X - pointF2.X, 2) + Math.Pow(pointF1.Y - pointF2.Y, 2));
         }
 
-        private void showMarkerPosition(float markerPosX, float markerPosY)
-        {
-            MCvFont f = new MCvFont(FONT.CV_FONT_HERSHEY_COMPLEX, 0.5, 0.5);
-            infraredImgCpy.Draw("  " + (markerPosX).ToString() + "\n" + (markerPosY).ToString(), ref f, new System.Drawing.Point((int)markerPosX, (int)markerPosY), new Bgr(121, 116, 40));
-            //original_Frame.Draw(contours.Area.ToString(), ref f, new System.Drawing.Point((int)markerPosX, (int)markerPosY), new Bgr(121, 116, 40));
-        }
-
-        private void writerTextMarkerPosition(float markerPosX, float markerPosY)
-        {
-            //tbxResults.AppendText("{" + markerPosX.ToString() + " - " + markerPosY.ToString() + "}");
-            //tbxResults.AppendText(Environment.NewLine);
-        }
-
-        private void CalculateHipAngles(Dictionary<string, PointF> dicMarkers, Image<Bgr, byte> imageToPutData, bool captureAngles)
+        private void CalculateHipAngles(Dictionary<string, PointF> dicMarkers, Image<Bgr, byte> bgrImg, bool isDrawAxis, bool isCapturingAngles)
         {
             /// calculating longitudinal axis
-            /// 
-            LineSegment2DF iliacSpainLogAxis = new LineSegment2DF(new System.Drawing.PointF(dicMarkers["PosteriorSuperiorIliacSpine"].X, dicMarkers["PosteriorSuperiorIliacSpine"].Y),
-                new System.Drawing.PointF(dicMarkers["AnteriorSuperiorIliacSpine"].X, dicMarkers["AnteriorSuperiorIliacSpine"].Y));
+            LineSegment2DF iliacSpainLogAxis = new LineSegment2DF(
+                new System.Drawing.PointF(dicMarkers["PosteriorSuperiorIliacSpine"].X,dicMarkers["PosteriorSuperiorIliacSpine"].Y),
+                new System.Drawing.PointF(dicMarkers["AnteriorSuperiorIliacSpine"].X, dicMarkers["AnteriorSuperiorIliacSpine"].Y)
+            );
 
-            LineSegment2DF femurLogAxis = new LineSegment2DF(new System.Drawing.PointF(dicMarkers["Knee"].X, dicMarkers["Knee"].Y),
-               new System.Drawing.PointF(dicMarkers["Trochanter"].X, dicMarkers["Trochanter"].Y));
+            LineSegment2DF femurLogAxis = new LineSegment2DF(
+                new System.Drawing.PointF(dicMarkers["Knee"].X, dicMarkers["Knee"].Y),
+                new System.Drawing.PointF(dicMarkers["Trochanter"].X, dicMarkers["Trochanter"].Y)
+            );
+
+            LineSegment2DF verticalAxis = new LineSegment2DF(
+                new System.Drawing.PointF(dicMarkers["Trochanter"].X, dicMarkers["Knee"].Y),
+                new System.Drawing.PointF(dicMarkers["Trochanter"].X, dicMarkers["Trochanter"].Y)
+            );
 
             /// drawing axis
-            /// 
             if (isDrawAxis)
             {
-                imageToPutData.Draw(iliacSpainLogAxis, new Bgr(System.Drawing.Color.Red), 1);
-                imageToPutData.Draw(femurLogAxis, new Bgr(System.Drawing.Color.Blue), 1);
+                bgrImg.Draw(iliacSpainLogAxis, new Bgr(System.Drawing.Color.Red), 1);
+                bgrImg.Draw(femurLogAxis, new Bgr(System.Drawing.Color.Blue), 1);
+                bgrImg.Draw(verticalAxis, new Bgr(System.Drawing.Color.Yellow), 1);
             }
 
             /// ankle angle calculation
-            double angleEmguAnkle1 = iliacSpainLogAxis.GetExteriorAngleDegree(femurLogAxis) - 90;
-            double angleEmguAnkle2 = femurLogAxis.GetExteriorAngleDegree(iliacSpainLogAxis) - 90;
+            double hipAngle;
+            if (!isLeftSagittalPlane)// right
+            {
+                hipAngle = femurLogAxis.GetExteriorAngleDegree(iliacSpainLogAxis) - 90;
+            }
+            else //left
+            {
+                hipAngle = iliacSpainLogAxis.GetExteriorAngleDegree(femurLogAxis) - 90;
+            }
 
-
-
-            double angle = findAngle(dicMarkers);
-            // double angle = angleEmgu;
+            //Wiliam requirement, hes method to calculate the hip angles
+            //double angleEmguHip = (-1) * femurLogAxis.GetExteriorAngleDegree(verticalAxis);
+            //tbxResultsAnkle.AppendText(angleEmguHip.ToString());
+            //tbxResultsAnkle.AppendText(Environment.NewLine);
 
             MCvFont f = new MCvFont(FONT.CV_FONT_HERSHEY_COMPLEX, 1, 1);
-            imageToPutData.Draw(((int)angleEmguAnkle1).ToString(), ref f, new System.Drawing.Point((int)dicMarkers["AnteriorSuperiorIliacSpine"].X + 10, (int)dicMarkers["AnteriorSuperiorIliacSpine"].Y), new Bgr(121, 116, 40));
+            bgrImg.Draw(((int)hipAngle).ToString(), 
+                ref f, 
+                new System.Drawing.Point((int)dicMarkers["AnteriorSuperiorIliacSpine"].X + 10, 
+                    (int)dicMarkers["AnteriorSuperiorIliacSpine"].Y), 
+                new Bgr(121, 116, 40));
 
-            if (captureAngles)
-                angles.Add(angle);
-
-            tbxResultsHip.AppendText(angleEmguAnkle1.ToString());
-            tbxResultsHip.AppendText(Environment.NewLine);
+            if (isCapturingAngles)
+            {
+                tbxResultsHip.AppendText(hipAngle.ToString());
+                tbxResultsHip.AppendText(Environment.NewLine);
+            }
+           
         }
 
-        private void CalculatePelvisAngles(Dictionary<string, PointF> dicMarkers, Image<Bgr, byte> imageToPutData, bool captureAngles)
+        private void CalculatePelvisAngles(Dictionary<string, PointF> dicMarkers, Image<Bgr, byte> bgrImg, bool isDrawAxis, bool isCapturingAngles)
         {
             /// calculating longitudinal axis
-            /// 
-            LineSegment2DF iliacSpainLogAxis = new LineSegment2DF(new System.Drawing.PointF(dicMarkers["PosteriorSuperiorIliacSpine"].X, dicMarkers["PosteriorSuperiorIliacSpine"].Y),
+            LineSegment2DF iliacSpainLogAxis = new LineSegment2DF(
+                new System.Drawing.PointF(dicMarkers["PosteriorSuperiorIliacSpine"].X, dicMarkers["PosteriorSuperiorIliacSpine"].Y),
                 new System.Drawing.PointF(dicMarkers["AnteriorSuperiorIliacSpine"].X, dicMarkers["AnteriorSuperiorIliacSpine"].Y));
 
-            LineSegment2DF horizontalLogAxis = new LineSegment2DF(new System.Drawing.PointF(dicMarkers["AnteriorSuperiorIliacSpine"].X, dicMarkers["AnteriorSuperiorIliacSpine"].Y),
+            LineSegment2DF horizontalLogAxis = new LineSegment2DF(
+                new System.Drawing.PointF(dicMarkers["AnteriorSuperiorIliacSpine"].X, dicMarkers["AnteriorSuperiorIliacSpine"].Y),
                  new System.Drawing.PointF(dicMarkers["PosteriorSuperiorIliacSpine"].X, dicMarkers["AnteriorSuperiorIliacSpine"].Y));
 
             /// drawing axis
-            /// 
             if (isDrawAxis)
             {
-                imageToPutData.Draw(iliacSpainLogAxis, new Bgr(System.Drawing.Color.Red), 1);
-                imageToPutData.Draw(horizontalLogAxis, new Bgr(System.Drawing.Color.Blue), 1);
+                bgrImg.Draw(iliacSpainLogAxis, new Bgr(System.Drawing.Color.Red), 1);
+                bgrImg.Draw(horizontalLogAxis, new Bgr(System.Drawing.Color.Blue), 1);
             }
+
             /// ankle angle calculation
-            double angleEmguAnkle1 = 180 - horizontalLogAxis.GetExteriorAngleDegree(iliacSpainLogAxis);
-            double angleEmguAnkle2 = 180 - iliacSpainLogAxis.GetExteriorAngleDegree(horizontalLogAxis);
-
-            double angle = findAngle(dicMarkers);
-            // double angle = angleEmgu;
-
+            double ankleAngle;
+            if (!isLeftSagittalPlane)// right
+            {
+                ankleAngle = 180 - iliacSpainLogAxis.GetExteriorAngleDegree(horizontalLogAxis);
+            }
+            else //left
+            {
+                ankleAngle = 180 - horizontalLogAxis.GetExteriorAngleDegree(iliacSpainLogAxis);
+            }
+            
             MCvFont f = new MCvFont(FONT.CV_FONT_HERSHEY_COMPLEX, 1, 1);
-            imageToPutData.Draw(((int)angleEmguAnkle1).ToString(), ref f, new System.Drawing.Point((int)dicMarkers["PosteriorSuperiorIliacSpine"].X, (int)dicMarkers["PosteriorSuperiorIliacSpine"].Y), new Bgr(121, 116, 40));
+            bgrImg.Draw(((int)ankleAngle).ToString(), 
+                ref f, 
+                new System.Drawing.Point((int)dicMarkers["PosteriorSuperiorIliacSpine"].X, 
+                    (int)dicMarkers["PosteriorSuperiorIliacSpine"].Y), 
+                new Bgr(121, 116, 40)
+            );
 
-            if (captureAngles)
-                angles.Add(angle);
-
-            tbxResultsPelvis.AppendText(angleEmguAnkle1.ToString());
-            tbxResultsPelvis.AppendText(Environment.NewLine);
-
+            if (isCapturingAngles)
+            {
+                tbxResultsPelvis.AppendText(ankleAngle.ToString());
+                tbxResultsPelvis.AppendText(Environment.NewLine);
+            }
         }
 
-        private void CalculateKneeAngles(Dictionary<string, PointF> dicMarkers, Image<Bgr, byte> imageToPutData, bool captureAngles)
+        private void CalculateKneeAngles(Dictionary<string, PointF> dicMarkers, Image<Bgr, byte> bgrImg, bool isDrawAxis, bool isCapturingAngles)
         {
+            /// calculating longitudinal axis
+            LineSegment2DF femurLogAxis = new LineSegment2DF(
+                new System.Drawing.PointF(dicMarkers["Trochanter"].X, dicMarkers["Trochanter"].Y),
+                new System.Drawing.PointF(dicMarkers["Knee"].X, dicMarkers["Knee"].Y)
+            );
 
-            LineSegment2DF femurLogAxis = new LineSegment2DF(new System.Drawing.PointF(dicMarkers["Trochanter"].X, dicMarkers["Trochanter"].Y),
-                new System.Drawing.PointF(dicMarkers["Knee"].X, dicMarkers["Knee"].Y));
-            LineSegment2DF tibiaLogAxis = new LineSegment2DF(new System.Drawing.PointF(dicMarkers["Knee"].X, dicMarkers["Knee"].Y),
-                new System.Drawing.PointF(dicMarkers["Ankle"].X, dicMarkers["Ankle"].Y));
+            LineSegment2DF tibiaLogAxis = new LineSegment2DF(
+                new System.Drawing.PointF(dicMarkers["Knee"].X, dicMarkers["Knee"].Y),
+                new System.Drawing.PointF(dicMarkers["Ankle"].X, dicMarkers["Ankle"].Y)
+            );
 
+            /// drawing axis
             if (isDrawAxis)
             {
-                imageToPutData.Draw(tibiaLogAxis, new Bgr(System.Drawing.Color.Red), 1);
-                imageToPutData.Draw(femurLogAxis, new Bgr(System.Drawing.Color.Red), 1);
+                bgrImg.Draw(tibiaLogAxis, new Bgr(System.Drawing.Color.Red), 1);
+                bgrImg.Draw(femurLogAxis, new Bgr(System.Drawing.Color.Red), 1);
             }
-            /// In order to calculate positive and negative angles use GetExteriorAngleDegree
-            /// If pendient is positive, then ExteriorAngleDegree =>  +
-            /// If pendient is negative, then ExteriorAngleDegree =>  -
-            /// When analizing the left leg multiple the angle by (-1)  to get coherent angles
-            /// When analizing the rigth leg multiple the angle by (+1)  to get coherent angles
-            /// 
-            double angleEmgu1 = tibiaLogAxis.GetExteriorAngleDegree(femurLogAxis);
-            double angleEmgu2 = femurLogAxis.GetExteriorAngleDegree(tibiaLogAxis);
 
-            /// Ths method always will calculate the positive  Interior angle
-            double angle = findAngle(dicMarkers);
-            // double angle = angleEmgu;
-
+            double kneeAngle;
+            if (!isLeftSagittalPlane)// right
+            {
+                kneeAngle = femurLogAxis.GetExteriorAngleDegree(tibiaLogAxis);
+            }
+            else //left
+            {
+                kneeAngle = tibiaLogAxis.GetExteriorAngleDegree(femurLogAxis);
+            }
+            
             MCvFont f = new MCvFont(FONT.CV_FONT_HERSHEY_COMPLEX, 1.0, 1.0);
-            imageToPutData.Draw(((int)angleEmgu1).ToString(), ref f, new System.Drawing.Point((int)dicMarkers["Knee"].X - 50, (int)dicMarkers["Knee"].Y), new Bgr(255, 0, 0));
-            //original_Frame.Draw(((int)angleEmgu2).ToString(), ref f, new System.Drawing.Point((int)dicMarkers["Knee"].X +10, (int)dicMarkers["Knee"].Y), new Bgr(0, 0, 255));
+            bgrImg.Draw(((int)kneeAngle).ToString(), 
+                ref f, 
+                new System.Drawing.Point((int)dicMarkers["Knee"].X - 50, (int)dicMarkers["Knee"].Y), 
+                new Bgr(255, 0, 0)
+            );
 
-            if (captureAngles)
-                angles.Add(angle);
-
-            //========================== activar un BOOL para empezar a capturar lo angulos y desactivarlo al presionarlo nuevamente 
-            //========================== luego guardar la lista de angulos y mostrarlo en la grafica
-
-            //tbxResults.AppendText("line.AddPoint(" + (countFrames * 1.0).ToString() + "," + Math.Abs(angle).ToString() + ");");
-            //tbxResults.AppendText(Math.Abs(angle).ToString() + ",");
-            tbxResultsKnee.AppendText(Math.Abs(angle).ToString());
-            tbxResultsKnee.AppendText(Environment.NewLine);
-
-            /*
-            ListBoxItem item = new ListBoxItem();
-            item.Content = "AddPoint(" + (countFrames * 1.0).ToString() + "," + angle.ToString() + ");";
-            listResults.Items.Add(item);
-            */
-            countFrames++;
+            if (isCapturingAngles)
+            {
+                tbxResultsKnee.AppendText(Math.Abs(kneeAngle).ToString());
+                tbxResultsKnee.AppendText(Environment.NewLine);
+            }
         }
 
-        private void CalculateAnkleAngles(Dictionary<string, PointF> dicMarkers, Image<Bgr, byte> imageToPutData, bool captureAngles)
+        private float CalculateAnkleAngles(Dictionary<string, PointF> dicMarkers, Image<Bgr, byte> bgrImg, bool isDrawAxis, bool isCapturingAngles)
         {
+
             /// finding the missing P(x,y) that form a perfect triangle
             /// Source => http://www.freemathhelp.com/forum/threads/82575-need-help-finding-3rd-set-of-coordinates-to-a-right-triangle/page2
             /// 
-            float px = dicMarkers["Ankle"].X - (dicMarkers["Knee"].Y - dicMarkers["Ankle"].Y);
-            float py = dicMarkers["Ankle"].Y - (dicMarkers["Ankle"].X - dicMarkers["Knee"].X);
+            float perfecTriangleMissingPointX = dicMarkers["Ankle"].X - (dicMarkers["Knee"].Y - dicMarkers["Ankle"].Y);
+            float perfecTriangleMissingPointY = dicMarkers["Ankle"].Y - (dicMarkers["Ankle"].X - dicMarkers["Knee"].X);
+
+            if (!isLeftSagittalPlane)
+            {
+                perfecTriangleMissingPointX = dicMarkers["Ankle"].X + (dicMarkers["Knee"].Y - dicMarkers["Ankle"].Y);
+                perfecTriangleMissingPointY = dicMarkers["Ankle"].Y + (dicMarkers["Ankle"].X - dicMarkers["Knee"].X);
+            }
 
             /// calculating longitudinal axis
-            /// 
-            LineSegment2DF tibiaLogAxis = new LineSegment2DF(new System.Drawing.PointF(dicMarkers["Ankle"].X, dicMarkers["Ankle"].Y),
-                new System.Drawing.PointF(dicMarkers["Knee"].X, dicMarkers["Knee"].Y));
+            LineSegment2DF tibiaLogAxis = new LineSegment2DF(
+                new System.Drawing.PointF(dicMarkers["Ankle"].X, dicMarkers["Ankle"].Y),
+                new System.Drawing.PointF(dicMarkers["Knee"].X, dicMarkers["Knee"].Y)
+            );
 
-            LineSegment2DF retropieLogAxis = new LineSegment2DF(new System.Drawing.PointF(dicMarkers["Calcaneus"].X, dicMarkers["Calcaneus"].Y),
-                new System.Drawing.PointF(dicMarkers["Foot"].X, dicMarkers["Foot"].Y));
+            LineSegment2DF retropieLogAxis = new LineSegment2DF(
+                new System.Drawing.PointF(dicMarkers["Calcaneus"].X, dicMarkers["Calcaneus"].Y),
+                new System.Drawing.PointF(dicMarkers["Foot"].X, dicMarkers["Foot"].Y)
+            );
 
-            LineSegment2DF perpendicularTibiaLongAxis = new LineSegment2DF(new System.Drawing.PointF(px, py),
+            
+            //// Hipothesis -> the lower P(y) from perpendicular axis from tibiaAxis is when INITIAL CONTACT SHOW UP
+            double perfecTriangleMissingPointXCorrectionINITIAL_CONTACT_CIO = 0;
+            double perfecTriangleMissingPointXCorrection = 0;
+            if (!isLeftSagittalPlane)
+            {
+                perfecTriangleMissingPointXCorrectionINITIAL_CONTACT_CIO = tibiaLogAxis.Length;
+                perfecTriangleMissingPointXCorrection = perfecTriangleMissingPointX - dicMarkers["Ankle"].X;
+            }
+
+            LineSegment2DF perpendicularTibiaLongAxis = new LineSegment2DF(
+
+                new System.Drawing.PointF(perfecTriangleMissingPointX , perfecTriangleMissingPointY),
+                
+                /// shows like a kinect Forces on the feet
+                //new System.Drawing.PointF(perfecTriangleMissingPointX - (float)perfecTriangleMissingPointXCorrectionINITIAL_CONTACT_CIO, perfecTriangleMissingPointY),
+                //new System.Drawing.PointF(perfecTriangleMissingPointX - (float)(2 * perfecTriangleMissingPointXCorrection), perfecTriangleMissingPointY),
+                
+                
                 new System.Drawing.PointF(dicMarkers["Ankle"].X, dicMarkers["Ankle"].Y));
 
             /// drawing axis
-            /// 
             if (isDrawAxis)
             {
-                imageToPutData.Draw(tibiaLogAxis, new Bgr(System.Drawing.Color.Yellow), 1);
-                imageToPutData.Draw(retropieLogAxis, new Bgr(System.Drawing.Color.Red), 1);
-                imageToPutData.Draw(perpendicularTibiaLongAxis, new Bgr(System.Drawing.Color.Green), 1);
+                bgrImg.Draw(tibiaLogAxis, new Bgr(System.Drawing.Color.Yellow), 1);
+                bgrImg.Draw(retropieLogAxis, new Bgr(System.Drawing.Color.Red), 1);
+                bgrImg.Draw(perpendicularTibiaLongAxis, new Bgr(System.Drawing.Color.Green), 1);
             }
 
             /// ankle angle calculation
-            double angleEmguAnkle1 = perpendicularTibiaLongAxis.GetExteriorAngleDegree(retropieLogAxis);
-            double angleEmguAnkle2 = retropieLogAxis.GetExteriorAngleDegree(perpendicularTibiaLongAxis);
-
-
-            double angle = findAngle(dicMarkers);
-            // double angle = angleEmgu;
+            double ankleAngle;
+            
+            if (!isLeftSagittalPlane)// right
+            {
+                ankleAngle = retropieLogAxis.GetExteriorAngleDegree(perpendicularTibiaLongAxis);
+            }
+            else //left
+            {
+                ankleAngle = perpendicularTibiaLongAxis.GetExteriorAngleDegree(retropieLogAxis);
+            }
 
             MCvFont f = new MCvFont(FONT.CV_FONT_HERSHEY_COMPLEX, 1.0, 1.0);
-            imageToPutData.Draw(((int)angleEmguAnkle1).ToString(), ref f, new System.Drawing.Point((int)dicMarkers["Calcaneus"].X, (int)dicMarkers["Calcaneus"].Y), new Bgr(121, 116, 40));
+            bgrImg.Draw(((int)ankleAngle).ToString(), 
+                ref f, 
+                new System.Drawing.Point((int)dicMarkers["Calcaneus"].X, (int)dicMarkers["Calcaneus"].Y), 
+                new Bgr(121, 116, 40)
+            );
 
-            if (captureAngles)
-                angles.Add(angle);
+            if (isCapturingAngles)
+            {
+                tbxResultsAnkle.AppendText(ankleAngle.ToString());
+                tbxResultsAnkle.AppendText(Environment.NewLine);
+            }
 
-            //========================== activar un BOOL para empezar a capturar lo angulos y desactivarlo al presionarlo nuevamente 
-            //========================== luego guardar la lista de angulos y mostrarlo en la grafica
+            //return the P(y) detecting the initial contact
+            return perfecTriangleMissingPointY;
 
-            //tbxResults.AppendText("line.AddPoint(" + (countFrames * 1.0).ToString() + "," + Math.Abs(angle).ToString() + ");");
-            //tbxResults.AppendText(Math.Abs(angle).ToString() + ",");
-            tbxResultsAnkle.AppendText(angleEmguAnkle1.ToString());
-            tbxResultsAnkle.AppendText(Environment.NewLine);
-
-            /*
-            ListBoxItem item = new ListBoxItem();
-            item.Content = "AddPoint(" + (countFrames * 1.0).ToString() + "," + angle.ToString() + ");";
-            listResults.Items.Add(item);
-            */
-            countFrames++;
         }
 
-        private void DrawLinesHoriontal(List<System.Drawing.PointF> markersF, Image<Bgr, byte> outImg1, bool captureAngles)
+        private void DrawLinesHoriontal(List<System.Drawing.PointF> markersF, Image<Bgr, byte> bgrImg)
         {
-
-
             for (int i = 0; i < markersF.Count; i++)
             {
                 LineSegment2D line1 = new LineSegment2D(new System.Drawing.Point(0, (int)markersF[i].Y),
                     new System.Drawing.Point((int)markersF[i].X, (int)markersF[i].Y));
 
-                outImg1.Draw(line1, new Bgr(System.Drawing.Color.Red), 1);
+                bgrImg.Draw(line1, new Bgr(System.Drawing.Color.Red), 1);
             }
-
 
             countFrames++;
         }
 
-        private double findAngle(Dictionary<string, PointF> markersF)
+        private double findAngleNotUsed(Dictionary<string, PointF> markersF)
         {
             double a = Math.Pow(markersF["Knee"].X - markersF["Ankle"].X, 2) + Math.Pow(markersF["Knee"].Y - markersF["Ankle"].Y, 2);
             double b = Math.Pow(markersF["Knee"].X - markersF["Trochanter"].X, 2) + Math.Pow(markersF["Knee"].Y - markersF["Trochanter"].Y, 2);
@@ -1730,8 +1873,6 @@ namespace Gaitcome2D
 
             return Math.Abs(Math.Acos((a + b - c) / Math.Sqrt(4 * a * b)) * 180 / Math.PI - 180);
         }
-
-
 
 
         [System.Runtime.InteropServices.DllImport("gdi32")]

@@ -70,12 +70,6 @@
     <Reference Include="Emgu.Util">
       <HintPath>.\Emgu.Util.dll</HintPath>
     </Reference>
-    <Reference Include="GleamTech.Core">
-      <HintPath>..\..\..\videoUltimate\Bin\GleamTech.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="GleamTech.VideoUltimate">
-      <HintPath>..\..\..\videoUltimate\Bin\GleamTech.VideoUltimate.dll</HintPath>
-    </Reference>
     <Reference Include="PresentationUI, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
     <Reference Include="ReachFramework" />
     <Reference Include="System" />

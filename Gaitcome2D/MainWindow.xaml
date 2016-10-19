@@ -33,7 +33,7 @@
 
                                 <StackPanel Orientation="Vertical" Grid.Column="0">
                                     <TextBlock   FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Top" TextWrapping="Wrap">Color Camera</TextBlock>
-                                    <local:CLEyeCameraImage x:Name="cameraImage1" Framerate="75" ColorMode="CLEYE_COLOR_RAW" Resolution="CLEYE_VGA"  Margin="5" HorizontalAlignment="Center" VerticalAlignment="Top" />
+                                    <local:CLEyeCameraImage x:Name="cameraImage0" Framerate="75" ColorMode="CLEYE_COLOR_RAW" Resolution="CLEYE_VGA"  Margin="5" HorizontalAlignment="Center" VerticalAlignment="Top" />
 
                                 </StackPanel>
 
@@ -41,7 +41,7 @@
 
                                 <StackPanel Orientation="Vertical" Grid.Column="2">
                                     <TextBlock  FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Top" TextWrapping="Wrap">Infrared Camera</TextBlock>
-                                    <local:CLEyeCameraImage x:Name="cameraImage2"  Framerate="75" ColorMode="CLEYE_COLOR_RAW" Resolution="CLEYE_VGA" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Top"/>
+                                    <local:CLEyeCameraImage x:Name="cameraImage1"  Framerate="10" ColorMode="CLEYE_MONO_RAW" Resolution="CLEYE_VGA" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Top"/>
                                 </StackPanel>
 
                             </Grid>
@@ -63,7 +63,7 @@
 			                                Margin="10,26,0,0" VerticalAlignment="Top"/>
                                     <!--<CheckBox x:Name="ckbCamera03" Content="Cámara 03" HorizontalAlignment="Left"
 			                                Margin="10,51,0,0" VerticalAlignment="Top"/>-->
-                                    <Button x:Name="btnForzeInitCameras" Content="Prender Camaras" 
+                                    <Button x:Name="btnForzeInitCameras" Content="Importar" Visibility="Visible" 
                                              Margin="10,47,0,0" Click="btnForzeInitCameras_Click"/>
 
                                 </Grid>
@@ -88,7 +88,7 @@
                                 </Grid>
                             </GroupBox>
 
-                            <ListBox x:Name="output"  IsTextSearchEnabled="False" IsHitTestVisible="False" Background="LightGray" HorizontalAlignment="Right" Width="344" FontSize="12"  />
+                            <ListBox x:Name="output"  IsTextSearchEnabled="False" IsHitTestVisible="False" Background="LightGray" HorizontalAlignment="Right" Width="824" FontSize="12"  />
                         </StackPanel>
                     </Grid>
                 </StackPanel>
@@ -100,7 +100,7 @@
 
             <!-- Player TAB-->
             <TabItem Header="Player" FontSize="12">
-                <Grid>
+                <Grid >
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="713*"/>
                         <ColumnDefinition Width="473*"/>
@@ -113,13 +113,13 @@
                     		MediaEnded="Media_MediaEnded"
                     		MediaFailed="Media_MediaFailed" Height="240" VerticalAlignment="Top" Margin="11,-235,154,0" Grid.Column="1"/>
 
-                    <StackPanel Orientation="Vertical" Margin="0,10,32,135" HorizontalAlignment="Right" Width="390" Grid.Column="1">
-                        <Image x:Name="dataImagePlayer" Height="310" Margin="10,0,0,0" />
+                    <StackPanel Orientation="Vertical" Margin="0,10,32,193" HorizontalAlignment="Right" Width="390" Grid.Column="1">
+                        <Image x:Name="dataImagePlayer" Height="257" Margin="36,0,0,0" />
 
-                        <StackPanel Orientation="Horizontal" Height="144">
+                        <StackPanel Orientation="Horizontal" >
                             <Image x:Name="binaryImagePlayer" Margin="10,0,0,10" Width="166" />
 
-                            <StackPanel Orientation="Vertical" Width="203">
+                            <StackPanel Orientation="Vertical" Width="203" Height="158">
                                 <TextBlock  x:Name="txtMinSizeBlobValue" FontSize="10" Height="19" Margin="10,0,0,0">MinSizeBlob</TextBlock>
                                 <Slider x:Name="sliderMinSizeBlob" Value="3" Minimum="1" Maximum="16" ValueChanged="sliderMinSizeBlob_ValueChanged"/>
                                 <TextBlock x:Name="txtMaxSizeBlobValue" FontSize="10" Height="19" Margin="10,0,0,0">MaxSizeBlob</TextBlock>
@@ -127,7 +127,7 @@
                                 <TextBlock x:Name="txtMinUmbralValue" FontSize="10" Height="19" Margin="10,0,0,0">MinUmbralValue</TextBlock>
                                 <Slider x:Name="sliderMinUmbral" Value="20" Minimum="0" Maximum="255" ValueChanged="sliderMinUmbral_ValueChanged"/>
                                 <TextBlock x:Name="txtMaxUmbralValue" FontSize="10" Height="19" Margin="10,0,0,0">MaxUmbralValue</TextBlock>
-                                <Slider x:Name="sliderMaxUmbral" Value="100" Minimum="0" Maximum="255" ValueChanged="sliderMaxUmbral_ValueChanged" Height="54"/>
+                                <Slider x:Name="sliderMaxUmbral" Value="100" Minimum="0" Maximum="255" ValueChanged="sliderMaxUmbral_ValueChanged" Height="24"/>
                             </StackPanel>
                         </StackPanel>
 
@@ -138,10 +138,10 @@
                     <StackPanel Orientation="Vertical" Margin="0,5,6,0">
 
 
-                        <Image x:Name="colorImagePlayer" />
+                        <Image x:Name="colorImagePlayer" Height="556" />
 
 
-                        <StackPanel Orientation="Horizontal" Height="39">
+                        <StackPanel Orientation="Horizontal">
                             <Ellipse x:Name="Status" Fill="Gray" Height="19" Width="19" Margin="5"/>
                             <TextBlock x:Name="lblImageProgressStatus"><Run Text="00:00:00:00"/></TextBlock>
                             <TextBlock x:Name="MediaName" Foreground="White"  FontSize="10" RenderTransformOrigin="0.5,0.5" Height="20" Width="286"><Run Text="No Media"/></TextBlock>
@@ -150,7 +150,7 @@
                     			Value="0.6" Minimum="0.1" Maximum="1"
                     			ValueChanged="Speed_ValueChanged"
                     			TickPlacement="Both"
-                    			IsSnapToTickEnabled="True"  Ticks="0.1, 0.35, 0.6, 0.85, 1" Height="44" Width="267" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-2,0,-3"/>
+                    			IsSnapToTickEnabled="True"  Ticks="0.1, 0.35, 0.6, 0.85, 1" Height="47" Width="267" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-2,0,-3"/>
                         </StackPanel>
 
 
@@ -162,26 +162,31 @@
                         <Slider x:Name="sliImageProgress" Thumb.DragStarted="sliImageProgress_DragStarted"  Thumb.DragCompleted="sliImageProgress_DragCompleted" ValueChanged="sliImageProgress_ValueChanged" Height="23" Margin="0,5,0,5"/>
                     </StackPanel>
 
-                    <TextBlock Name="MediaInformation"
+                    <TextBlock Name="MediaInformation" Visibility="Hidden"
                  VerticalAlignment="Bottom"
                  Background="#404040" Height="44" Margin="35,0,10,86" Grid.Column="1"/>
-                    <TextBox x:Name="tbxResultsKnee" Margin="0,562,10,10" TextWrapping="Wrap" HorizontalAlignment="Right" Width="105" Grid.Column="1"/>
-                    <TextBox x:Name="tbxResultsAnkle" Margin="0,562,230,10" TextWrapping="Wrap" HorizontalAlignment="Right" Width="112" Grid.Column="1"/>
-                    <TextBox x:Name="tbxResultsHip" Margin="0,562,120,10" TextWrapping="Wrap" HorizontalAlignment="Right" Width="105" Grid.Column="1"/>
-                    <TextBox x:Name="tbxResultsPelvis" Margin="0,562,345,10" TextWrapping="Wrap" HorizontalAlignment="Right" Width="105" Grid.Column="1"/>
-                    <StackPanel Orientation="Horizontal" Margin="10,486,10,86" >
-                        <Button x:Name="btnOpen" Content="Open" Click="btnOpen_Click" Width="50" Height="25" Margin="5" FontSize="16"/>
-                        <Button x:Name="btnPlay" Content="Play" Click="btnPlay_Click" Width="50" Height="25" Margin="5" FontSize="16"/>
-                        <Button x:Name="btnPause" Content="Pause" Click="btnPause_Click" Width="50" Height="25" Margin="5" FontSize="16"/>
-                        <Button x:Name="btnStop" Content="Stop" Click="btnStop_Click" Width="50" Height="25" Margin="5" FontSize="16"/>
+                    <Label Margin="0,0,223,153" Grid.Column="1" Content="Pélvis" HorizontalAlignment="Right" Width="229" Height="40" VerticalAlignment="Bottom" />
+                    <TextBox x:Name="tbxResultsKnee" Margin="0,0,0,5" TextWrapping="Wrap" HorizontalAlignment="Right" Width="222" Grid.Column="1" Height="56" VerticalAlignment="Bottom"/>
+                    <TextBox x:Name="tbxResultsAnkle" Margin="0,0,230,5" TextWrapping="Wrap" HorizontalAlignment="Right" Width="222" Grid.Column="1" Height="56" VerticalAlignment="Bottom"/>
+                    <TextBox x:Name="tbxResultsHip" Margin="0,0,0,105" TextWrapping="Wrap" HorizontalAlignment="Right" Width="222" Grid.Column="1" Height="60" VerticalAlignment="Bottom"/>
+                    <TextBox x:Name="tbxResultsPelvis" Margin="0,0,230,105" TextWrapping="Wrap" Grid.Column="1" Height="60" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="222"/>
+                    <StackPanel Orientation="Horizontal" Margin="174,486,63,105" >
+                        <Button x:Name="btnOpen" Content="Open" Click="btnOpen_Click" Width="50" Height="25" Margin="5" FontSize="12"/>
+                        <Button x:Name="btnPlay" Content="Play" Click="btnPlay_Click" Width="50" Height="25" Margin="5" FontSize="12"/>
+                        <Button x:Name="btnPause" Content="Pause" Click="btnPause_Click" Width="50" Height="25" Margin="5" FontSize="12"/>
+                        <Button x:Name="btnStop" Content="Stop" Click="btnStop_Click" Width="50" Height="25" Margin="5" FontSize="12"/>
                         <!--<Button x:Name="btnMoveBack" Content="Back" Click="btnMoveBack_Click" Width="50" Height="25" Margin="5"/>
             <Button x:Name="btnMoveForward" Content="Forward" Click="btnMoveForward_Click" Width="50" Height="25" Margin="5"/>
             -->
-                        <Button Click="btnBack_Click" Width="25" Height="25" Margin="5" Content="&lt;&lt;" FontSize="16"/>
-                        <Button Click="btnForward_Click" Width="25" Height="25" Margin="5" Content="&gt;&gt;" FontSize="16"/>
-                        <Button x:Name="btnDrawReferenceLines" Content="Lineas" Click="btnDrawReferenceLines_Click" Width="50" Height="25" FontSize="16" />
+                        <Button Click="btnBack_Click" Width="25" Height="25" Margin="5" Content="&lt;&lt;" FontSize="12"/>
+                        <Button Click="btnForward_Click" Width="25" Height="25" Margin="5" Content="&gt;&gt;" FontSize="12"/>
+                        <Button x:Name="btnDrawReferenceLines" Content="Lineas" Click="btnDrawReferenceLines_Click" Width="50" Height="25" Margin="5" FontSize="12" />
+                        <Button x:Name="btntSagittalPlane" Content="Derecha" Click="btnSagittalPlane_Click" Width="90" Height="25" FontSize="12" Margin="0,12"/>
 
                     </StackPanel>
+                    <Label Margin="0,0,6,153" Grid.Column="1" Content="Cadera" HorizontalAlignment="Right" Width="212" Height="40" VerticalAlignment="Bottom" />
+                    <Label Margin="0,0,244,53" Grid.Column="1" Content="Tobillo" HorizontalAlignment="Right" Width="208" Height="33" VerticalAlignment="Bottom" />
+                    <Label Margin="0,0,10,53" Grid.Column="1" Content="Rodilla" HorizontalAlignment="Right" Width="212" Height="33" VerticalAlignment="Bottom" />
 
                 </Grid>
 
