@@ -30,6 +30,7 @@ using Emgu.CV.CvEnum;
 using Emgu.CV.Structure;
 using Emgu.Util;
 
+
 namespace Gaitcome2D
 {
     /// <summary>
@@ -75,8 +76,8 @@ namespace Gaitcome2D
 
         #region Image processing Gait analysis
 
-         Image<Bgr, byte> infraredBgrImage;
-         Image<Bgr, byte> colorImage; 
+        Image<Bgr, byte> infraredBgrImage;
+        Image<Bgr, byte> colorImage;
 
         Image<Bgr, byte> infraredImgCpy;
         Image<Gray, byte> grayImg;
@@ -84,11 +85,24 @@ namespace Gaitcome2D
 
         int blobCount;
         int countFrames;
-        List<List<System.Drawing.PointF>> markersHistory;
         bool isDrawingAxis;
         string readImagePath;
         bool isLeftSagittalPlane;
         bool isCapturingAngles;
+
+
+        List<double> lstHipAngles;
+        List<double> lstKneeAngles;
+        List<double> lstAnkleAngles;
+        List<double> lstPelvisAngles;
+
+        int initialFrameToProcess;
+        int finalFrameToProccess;
+
+        bool isDetectingInitialContact;
+        List<KeyValuePair<KeyValuePair<int,double>, bool>> lstCandidatesInitialContanct;
+        int limMaxIC;
+        int indexCandidatesInitialContanct;
 
         #endregion
 
@@ -149,11 +163,26 @@ namespace Gaitcome2D
 
             blobCount = 0;
             countFrames = 0;
-            markersHistory = new List<List<PointF>>();
+            lstCandidatesInitialContanct = new List<KeyValuePair<KeyValuePair<int, double>, bool>>();
             isDrawingAxis = true;
             readImagePath = "";
             isLeftSagittalPlane = false;
             isCapturingAngles = false;
+
+            lstHipAngles    = new List<double>();
+            lstKneeAngles   = new List<double>();
+            lstAnkleAngles  = new List<double>();
+            lstPelvisAngles = new List<double>();
+
+            initialFrameToProcess = 0;
+            txbInitialFrame.Text = initialFrameToProcess.ToString();
+            finalFrameToProccess = 0;
+            txbLastFrame.Text = finalFrameToProccess.ToString();
+
+            isDetectingInitialContact = false;
+
+            limMaxIC = 3;
+            indexCandidatesInitialContanct = 0;
 
             #endregion
 
@@ -279,6 +308,28 @@ namespace Gaitcome2D
                 updateImageFrame(imagePlayerValue);
                 sliImageProgress.Value = imagePlayerValue;
                 imagePlayerValue++;
+
+                if (isCapturingAngles && imagePlayerValue > finalFrameToProccess &&
+                    finalFrameToProccess != 0)
+                {
+                    //initialFrameToProcess++; => replaced by ImagePlayerValue
+                    timerImagePlayer.Stop();
+                    isCapturingAngles = false;
+                    btnCaptureAngles.Content = "Capturar ángulos: OFF";
+                    indexCandidatesInitialContanct = 0;
+
+                    if (isDetectingInitialContact)
+                    {
+                        AutomaticInitialContactDetections();
+
+                        // HOT FOX -> there are false IC due to the camera UP and DOWN movements
+                        PrintAllGaitCyclesDetected();
+                    }
+                    else 
+                    {
+                        PrintAllAnglesDetected();
+                    }
+                }
             }
             else
             {
@@ -786,6 +837,8 @@ namespace Gaitcome2D
                 Media.Play();
                 timerRecording.Start();//update the timeline numbers
                 isPlaying = true;
+                statusImagePlayerOpened();
+
             }
 
 
@@ -796,6 +849,8 @@ namespace Gaitcome2D
                 isPlaying = true;
                 timerImagePlayer.Start();
             }
+
+
 
             #endregion
         }
@@ -852,7 +907,7 @@ namespace Gaitcome2D
                     if (!emptyFilesInCameraFolders())
                     {
                         //here the savepath is changed
-                        messageRewriteRecordingFiles(sender, e);
+                        MessageRewriteRecordingFiles(sender, e);
                     }
                     
                     timerRecording.Start();
@@ -876,69 +931,6 @@ namespace Gaitcome2D
 
         }
 
-        private void messageRewriteRecordingFiles(object sender, RoutedEventArgs e)
-        {
-            DialogResult result = System.Windows.Forms.MessageBox.Show("La ruta seleccionada no esta vacia, posiblemente contenga grabaciones realizadas con anterioridad. ¿Desea sobre escribir los archivos existentes?. De lo contrario, seleccione NO, y determine una nueva ruta de almacenamineto.",
-                       "Advertencia", MessageBoxButtons.YesNoCancel,
-                       MessageBoxIcon.Warning);
-
-            if (result == System.Windows.Forms.DialogResult.No)
-            {
-                isRecordingPathSelected = false;
-                btnRecordingSavePath_Click(sender, e);
-            }
-            else if (result == System.Windows.Forms.DialogResult.Yes)
-            {
-                return;
-            }
-
-        }
-
-        private void btnBack_Click(object sender, RoutedEventArgs e)
-        {
-
-            //AviManager am = CopyToVideo(10, imgCont);
-
-            //if (!Media.NaturalDuration.HasTimeSpan) return;
-
-            //var position = Media.Position;
-            //if (position.TotalSeconds < 5)
-            //    Media.Position = TimeSpan.FromSeconds(0);
-            //else
-            //    Media.Position = position.Add(TimeSpan.FromSeconds(-5));
-
-            #region imagePlayer
-
-            if (isImagePlayerDataLoaded &&
-                (imagePlayerValue > sliImageProgress.Minimum))
-            {
-                updateImageFrame(--imagePlayerValue);
-            }
-            #endregion
-        }
-
-        private void btnForward_Click(object sender, RoutedEventArgs e)
-        {
-            //if (!Media.NaturalDuration.HasTimeSpan) return;
-
-            //var targetPosition = Media.Position.Add(TimeSpan.FromSeconds(5));
-            //if (targetPosition > Media.NaturalDuration.TimeSpan)
-            //    Media.Position = Media.NaturalDuration.TimeSpan;
-            //else
-            //    Media.Position = targetPosition;
-
-            #region imagePlayer
-
-            if (isImagePlayerDataLoaded &&
-                imagePlayerValue < sliImageProgress.Maximum)
-            {
-                timerImagePlayer.Stop();
-                updateImageFrame(++imagePlayerValue);
-            }
-
-            #endregion
-        }
-
         private void btnDrawReferenceLines_Click(object sender, RoutedEventArgs e)
         {
             #region imagePlayer
@@ -949,10 +941,12 @@ namespace Gaitcome2D
                 if (!isDrawingAxis)
                 {
                     isDrawingAxis = true;
+                    btnDrawReferenceLines.Content = "Ejes logitudianles: ON";
                 }
                 else
                 {
                     isDrawingAxis = false;
+                    btnDrawReferenceLines.Content = "Ejes logitudianles: OFF";
                 }
                 updateImageFrame(imagePlayerValue);
 
@@ -994,6 +988,72 @@ namespace Gaitcome2D
 
         }
 
+        private void MessageRewriteRecordingFiles(object sender, RoutedEventArgs e)
+        {
+            DialogResult result = System.Windows.Forms.MessageBox.Show("La ruta seleccionada no esta vacia, posiblemente contenga grabaciones realizadas con anterioridad. ¿Desea sobre escribir los archivos existentes?. De lo contrario, seleccione NO, y determine una nueva ruta de almacenamineto.",
+                       "Advertencia", MessageBoxButtons.YesNoCancel,
+                       MessageBoxIcon.Warning);
+
+            if (result == System.Windows.Forms.DialogResult.No)
+            {
+                isRecordingPathSelected = false;
+                btnRecordingSavePath_Click(sender, e);
+            }
+            else if (result == System.Windows.Forms.DialogResult.Yes)
+            {
+                return;
+            }
+
+        }
+
+        private void btnBack_Click(object sender, RoutedEventArgs e)
+        {
+
+            //AviManager am = CopyToVideo(10, imgCont);
+
+            //if (!Media.NaturalDuration.HasTimeSpan) return;
+
+            //var position = Media.Position;
+            //if (position.TotalSeconds < 5)
+            //    Media.Position = TimeSpan.FromSeconds(0);
+            //else
+            //    Media.Position = position.Add(TimeSpan.FromSeconds(-5));
+
+            #region imagePlayer
+
+            if (isImagePlayerDataLoaded &&
+                (imagePlayerValue > sliImageProgress.Minimum))
+            {
+                timerImagePlayer.Stop();
+                updateImageFrame(--imagePlayerValue);
+            }
+            #endregion
+        }
+
+        private void btnForward_Click(object sender, RoutedEventArgs e)
+        {
+            //if (!Media.NaturalDuration.HasTimeSpan) return;
+
+            //var targetPosition = Media.Position.Add(TimeSpan.FromSeconds(5));
+            //if (targetPosition > Media.NaturalDuration.TimeSpan)
+            //    Media.Position = Media.NaturalDuration.TimeSpan;
+            //else
+            //    Media.Position = targetPosition;
+
+            #region imagePlayer
+
+            if (isImagePlayerDataLoaded &&
+                imagePlayerValue < sliImageProgress.Maximum)
+            {
+                timerImagePlayer.Stop();
+                updateImageFrame(++imagePlayerValue);
+            }
+
+            #endregion
+        }
+
+      
+
         private void Speed_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             if (Media != null)
@@ -1028,7 +1088,6 @@ namespace Gaitcome2D
             Status.Fill = System.Windows.Media.Brushes.Green;
             ShowMediaInformation();
         }
-
 
         private void ShowMediaInformation()
         {
@@ -1097,11 +1156,37 @@ namespace Gaitcome2D
             if (isImagePlayerDataLoaded)
             {
                 imagePlayerValue = (int)sliImageProgress.Value;
+
                 if (!isPlaying)
                     updateImageFrame(imagePlayerValue);
                 //lblImageProgressStatus.Text = TimeSpan.FromSeconds(sliProgress.Value).ToString(@"hh\:mm\:ss\:ff");
             }
 
+        }
+
+        private void sliImageProgress_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (isImagePlayerDataLoaded)
+            {
+                txbInitialFrame.Text = ((int)sliImageProgress.Value).ToString();
+                initialFrameToProcess = (int)sliImageProgress.Value ;
+            }
+        }
+
+        private void sliImageProgress_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (isImagePlayerDataLoaded)
+            {
+                finalFrameToProccess = (int)sliImageProgress.Value;
+                if (!(initialFrameToProcess < finalFrameToProccess))
+                {
+                    txbLastFrame.Text = "-";
+                }
+                else
+                {
+                    txbLastFrame.Text = ((int)sliImageProgress.Value).ToString();
+                }
+            }
         }
 
         private void updateImageFrame(int imagePlayervalue)
@@ -1123,15 +1208,193 @@ namespace Gaitcome2D
                 //}
                 //verticalCameraConfigutation();
 
-                if (!isLeftSagittalPlane)
+                SimulateRightSagittalPlane();
+
+                ImageProcessToGaitAngles(infraredBgrImage, colorImage, isCapturingAngles);
+
+               
+            }
+        }
+
+        private void SimulateRightSagittalPlane()
+        {
+            if (!isLeftSagittalPlane)
+            {
+                infraredBgrImage = infraredBgrImage.Flip(FLIP.HORIZONTAL);
+            }
+        }
+
+        private void AutomaticInitialContactDetections()
+        {
+            //Find Initial all INICITAL CONTACTS double sort
+            int length = lstCandidatesInitialContanct.Count;
+
+            double maxY = lstCandidatesInitialContanct[0].Key.Value;
+            bool isFoundedIC = false;
+
+            int contIC = 0;
+
+            for (int i = 1; i < length; i++)
+            {
+                //found a fallig
+                if (!(lstCandidatesInitialContanct[i].Key.Value > maxY))
                 {
-                    infraredBgrImage = infraredBgrImage.Flip(FLIP.HORIZONTAL);
+                    //    isFoundedIC = false;
+                    //}
+                    ////found less
+                    //else
+                    //{
+                    if (!isFoundedIC && contIC < limMaxIC)
+                    {
+                        isFoundedIC = true;
+
+                        KeyValuePair<KeyValuePair<int, double>, bool> newCandidate =
+                            new KeyValuePair<KeyValuePair<int, double>, bool>(
+                                new KeyValuePair<int, double>(
+                                    lstCandidatesInitialContanct[i - 1].Key.Key,
+                                    lstCandidatesInitialContanct[i - 1].Key.Value
+                                ),
+                                true // set IC contact detected to TRUE
+                            );
+
+                        lstCandidatesInitialContanct[i - 1] = newCandidate;
+                        contIC++;
+                    }
+
+                    //if (lstCandidatesInitialContanct[i].Key.Value > maxY  )
+                    //    isFoundedIC = false;
+                }
+                else 
+                {
+                    isFoundedIC = false;
+                }
+                maxY = lstCandidatesInitialContanct[i].Key.Value;
+            }
+        }
+
+        private int CompareAngles(KeyValuePair<KeyValuePair<int, double>, bool> x, KeyValuePair<KeyValuePair<int, double>, bool> y)
+        {
+            return y.Key.Value.CompareTo(x.Key.Value);
+        }
+
+        private int CompareIndexs(KeyValuePair<KeyValuePair<int, double>, bool> x, KeyValuePair<KeyValuePair<int, double>, bool> y)
+        {
+            return x.Key.Key.CompareTo(y.Key.Key);
+        }
+
+        private void PrintAllGaitCyclesDetected()
+        {
+            int lstLenght = lstCandidatesInitialContanct.Count;
+
+            int limIC = 0;
+            bool isPrintingAngles = false;
+
+            for (int i = 0; i < lstLenght; i++)
+            {
+                // detect I.C. candidates along 
+                if (lstCandidatesInitialContanct[i].Value)
+                {
+                    tbxResultsHip.AppendText("------------");
+                    tbxResultsHip.AppendText(Environment.NewLine);
+                    tbxResultsPelvis.AppendText("------------");
+                    tbxResultsPelvis.AppendText(Environment.NewLine);
+                    tbxResultsKnee.AppendText("------------");
+                    tbxResultsKnee.AppendText(Environment.NewLine);
+                    tbxResultsAnkle.AppendText("------------");
+                    tbxResultsAnkle.AppendText(Environment.NewLine);
+
+                    isPrintingAngles = true;
+
+                    if (!(limIC < limMaxIC))
+                        isPrintingAngles = false;
+
+                    limIC++;
+
                 }
 
-                GaitAnalysis(infraredBgrImage, colorImage, isCapturingAngles);
+                if (isPrintingAngles)
+                {
+                    tbxResultsHip.AppendText(lstHipAngles[i].ToString());
+                    tbxResultsHip.AppendText(Environment.NewLine);
 
+                    tbxResultsPelvis.AppendText(lstPelvisAngles[i].ToString());
+                    tbxResultsPelvis.AppendText(Environment.NewLine);
+
+                    tbxResultsKnee.AppendText(lstKneeAngles[i].ToString());
+                    tbxResultsKnee.AppendText(Environment.NewLine);
+
+                    tbxResultsAnkle.AppendText(lstAnkleAngles[i].ToString());
+                    tbxResultsAnkle.AppendText(Environment.NewLine);
+                }
+            }
+
+
+        }
+
+        private void PrintAllAnglesDetected()
+        {
+            int lstLenght = lstCandidatesInitialContanct.Count;
+
+            for (int i = 0; i < lstLenght; i++)
+            {
+                tbxResultsHip.AppendText(lstHipAngles[i].ToString());
+                //tbxResultsHip.AppendText(lstCandidatesInitialContanct[i].Key.Value.ToString());
+                tbxResultsHip.AppendText(Environment.NewLine);
+
+                tbxResultsPelvis.AppendText(lstPelvisAngles[i].ToString());
+                tbxResultsPelvis.AppendText(Environment.NewLine);
+
+                tbxResultsKnee.AppendText(lstKneeAngles[i].ToString());
+                tbxResultsKnee.AppendText(Environment.NewLine);
+
+                tbxResultsAnkle.AppendText(lstAnkleAngles[i].ToString());
+                tbxResultsAnkle.AppendText(Environment.NewLine);
+            }
+        }
+
+        private void btnCaptureAngles_Click(Object sender, RoutedEventArgs e)
+        {
+            if (!isCapturingAngles)
+            {
+                if (initialFrameToProcess < finalFrameToProccess)
+                {
+                    ClearPairListsOfAnatomicalUnits();
+                    isCapturingAngles = true;
+                    btnCaptureAngles.Content = "Capturar ángulos: ON";
+
+                    btnPlay_Click(sender, e); // auto play
+                    sliImageProgress.Value = Convert.ToInt32(txbInitialFrame.Text);
+                }
+                else
+                {
+                    System.Windows.MessageBox.Show("No ha selecionado un segmento del video ", "Atanción",
+                        MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                }
 
             }
+            else
+            {
+
+                isCapturingAngles = false;
+                btnCaptureAngles.Content = "Capturar ángulos: OFF";
+            }
+
+        }
+
+        private void btnInitialContactDetection_Click(Object sender, RoutedEventArgs e)
+        {
+            if (!isDetectingInitialContact)
+            {
+                isDetectingInitialContact = true;
+                btnInitialContactDetection.Content = "Deteccion de Contacto inicial : ON";
+
+            }
+            else
+            {
+                isDetectingInitialContact = false;
+                btnInitialContactDetection.Content = "Deteccion de Contacto inicial : OFF";
+            }
+
         }
 
         private void btnSagittalPlane_Click(Object sender, RoutedEventArgs e)
@@ -1139,13 +1402,13 @@ namespace Gaitcome2D
             if (!isLeftSagittalPlane)
             {
                 isLeftSagittalPlane = true;
-                btntSagittalPlane.Content = "Izquierda";
+                btntSagittalPlane.Content = "Plano Sagital: IZQUIERDO";
 
             }
-            else 
+            else
             {
                 isLeftSagittalPlane = false;
-                btntSagittalPlane.Content = "Derecha";
+                btntSagittalPlane.Content = "Plano Sagital: DERECHO";
             }
 
             imagePlayerValue = (int)sliImageProgress.Value;
@@ -1231,10 +1494,10 @@ namespace Gaitcome2D
 
         #region Image processing - Gait Analysis
 
-        private void GaitAnalysis(Image<Bgr, byte> infraBgrImg, Image<Bgr, byte> colorImg, bool isCapturingAngles)
+        private void ImageProcessToGaitAngles(Image<Bgr, byte> infraBgrImg, Image<Bgr, byte> colorImg, bool isCapturingAngles)
         {
             List<System.Drawing.PointF> lstRetMarkers = FindRetroreFlectiveMarkers(infraBgrImg);
-            
+
             if (lstRetMarkers != null && lstRetMarkers.Count == 7)
             {
                 Dictionary<string, PointF> dicMarkers = 
@@ -1246,19 +1509,9 @@ namespace Gaitcome2D
                 CalculatePelvisAngles(dicMarkers, infraredImgCpy, isDrawingAxis,isCapturingAngles);
                 CalculateHipAngles(dicMarkers, infraredImgCpy, isDrawingAxis, isCapturingAngles);
                 CalculateKneeAngles(dicMarkers, infraredImgCpy, isDrawingAxis, isCapturingAngles);
-                float lowerPointY = CalculateAnkleAngles(dicMarkers, infraredImgCpy, isDrawingAxis, isCapturingAngles);
+                CalculateAnkleAngles(dicMarkers, infraredImgCpy, isDrawingAxis, isCapturingAngles);
 
-                if (isCapturingAngles)
-                {
-                    /// before this method i need to have a list(Pair<bool(InitalComtact),angle>) per each unit 
-                    /// in order to set the bool IC to TRUE or FLASE and know where IC begins  and end.
-                    //InitialContact_AutomaticRecognition(lowerPointY, isCapturingAngles);
-                }
-               
-
-
-
-                markersHistory.Add(lstRetMarkers);
+                //markersHistory.Add(lstRetMarkers);
             }
             
             //DrawLinesHoriontal(dicMarkers, infraredImgCpy, true);
@@ -1271,6 +1524,14 @@ namespace Gaitcome2D
             colorImagePlayer.Source = ToBitmapSource(infraredImgCpy);
             dataImagePlayer.Source = ToBitmapSource(grayImg);
 
+        }
+
+        private void ClearPairListsOfAnatomicalUnits()
+        {
+            lstHipAngles.Clear();
+            lstKneeAngles.Clear();
+            lstAnkleAngles.Clear();
+            lstPelvisAngles.Clear();
         }
 
         private void DrawByColorsRetrorefelctiveMarkerLabels(Dictionary<string, PointF> dicMarkers, Image<Bgr, byte> bgrImg, float radious,int thickness)
@@ -1673,8 +1934,7 @@ namespace Gaitcome2D
 
             if (isCapturingAngles)
             {
-                tbxResultsHip.AppendText(hipAngle.ToString());
-                tbxResultsHip.AppendText(Environment.NewLine);
+                lstHipAngles.Add(hipAngle);
             }
            
         }
@@ -1698,18 +1958,18 @@ namespace Gaitcome2D
             }
 
             /// ankle angle calculation
-            double ankleAngle;
+            double pelvisAngle;
             if (!isLeftSagittalPlane)// right
             {
-                ankleAngle = 180 - iliacSpainLogAxis.GetExteriorAngleDegree(horizontalLogAxis);
+                pelvisAngle = 180 - iliacSpainLogAxis.GetExteriorAngleDegree(horizontalLogAxis);
             }
             else //left
             {
-                ankleAngle = 180 - horizontalLogAxis.GetExteriorAngleDegree(iliacSpainLogAxis);
+                pelvisAngle = 180 - horizontalLogAxis.GetExteriorAngleDegree(iliacSpainLogAxis);
             }
             
             MCvFont f = new MCvFont(FONT.CV_FONT_HERSHEY_COMPLEX, 1, 1);
-            bgrImg.Draw(((int)ankleAngle).ToString(), 
+            bgrImg.Draw(((int)pelvisAngle).ToString(), 
                 ref f, 
                 new System.Drawing.Point((int)dicMarkers["PosteriorSuperiorIliacSpine"].X, 
                     (int)dicMarkers["PosteriorSuperiorIliacSpine"].Y), 
@@ -1718,8 +1978,7 @@ namespace Gaitcome2D
 
             if (isCapturingAngles)
             {
-                tbxResultsPelvis.AppendText(ankleAngle.ToString());
-                tbxResultsPelvis.AppendText(Environment.NewLine);
+                lstPelvisAngles.Add(pelvisAngle);
             }
         }
 
@@ -1762,12 +2021,11 @@ namespace Gaitcome2D
 
             if (isCapturingAngles)
             {
-                tbxResultsKnee.AppendText(Math.Abs(kneeAngle).ToString());
-                tbxResultsKnee.AppendText(Environment.NewLine);
+               lstKneeAngles.Add(kneeAngle);
             }
         }
 
-        private float CalculateAnkleAngles(Dictionary<string, PointF> dicMarkers, Image<Bgr, byte> bgrImg, bool isDrawAxis, bool isCapturingAngles)
+        private void CalculateAnkleAngles(Dictionary<string, PointF> dicMarkers, Image<Bgr, byte> bgrImg, bool isDrawAxis, bool isCapturingAngles)
         {
 
             /// finding the missing P(x,y) that form a perfect triangle
@@ -1843,12 +2101,20 @@ namespace Gaitcome2D
 
             if (isCapturingAngles)
             {
-                tbxResultsAnkle.AppendText(ankleAngle.ToString());
-                tbxResultsAnkle.AppendText(Environment.NewLine);
-            }
+                lstAnkleAngles.Add(ankleAngle);
 
-            //return the P(y) detecting the initial contact
-            return perfecTriangleMissingPointY;
+                KeyValuePair<int, double> indexAndDouble =
+                    new KeyValuePair<int, double>(
+                        indexCandidatesInitialContanct,
+                        //change this parameter to perfecTriangleMissingPointY when is correct
+                        perfecTriangleMissingPointY
+                    );
+
+                lstCandidatesInitialContanct.Add(
+                    new KeyValuePair<KeyValuePair<int, double>, bool>(indexAndDouble, false));
+
+                indexCandidatesInitialContanct++;
+            }
 
         }
 
@@ -1899,6 +2165,8 @@ namespace Gaitcome2D
             }
         }
         #endregion
+
+       
 
     }
 }
