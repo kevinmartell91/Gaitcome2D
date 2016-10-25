@@ -1,0 +1,28 @@
+﻿<Window x:Class="Gaitcome2D.ResultsView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:oxy="http://oxyplot.org/wpf"
+        xmlns:localResults="clr-namespace:Gaitcome2D"
+        Title="Graficas - Sagital">
+   
+    
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <oxy:PlotView Model="{Binding pmHipGraphic}" Grid.Column="0" Grid.Row="0" />
+        <oxy:PlotView Model="{Binding pmPelvisGraphic}" Grid.Column="0" Grid.Row="1"/>
+        <oxy:PlotView Model="{Binding pmAnkleGraphic}" Grid.Column="0" Grid.Row="2"/>
+        <oxy:PlotView Model="{Binding pmKneeGraphic}" Grid.Column="0" Grid.Row="3"/>
+
+    </Grid>
+
+</Window>

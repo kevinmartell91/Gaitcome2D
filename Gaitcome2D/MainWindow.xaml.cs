@@ -22,13 +22,14 @@ using System.Windows.Controls.Primitives;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Diagnostics;
-using BytescoutImageToVideo;
+//using BytescoutImageToVideo;
 using Gaitcome2D.AviFileWrapper;
 using System.Windows.Forms;
 using Emgu.CV;
 using Emgu.CV.CvEnum;
 using Emgu.CV.Structure;
 using Emgu.Util;
+
 
 
 namespace Gaitcome2D
@@ -40,7 +41,7 @@ namespace Gaitcome2D
     {
 
         /// <summary>
-        /// =>    Get-ChildItem .\ -include bin,obj,bld,Backup,_UpgradeReport_Files,Debug,Release,ipch -Recurse | foreach ($_) { remove-item $_.fullname -Force -Recurse }
+        /// =>    Get-ChildItem .\ -include packages,bin,obj,bld,Backup,_UpgradeReport_Files,Debug,Release,ipch -Recurse | foreach ($_) { remove-item $_.fullname -Force -Recurse }
         ///       run this on power shell in order to delete unimportant files to commit
         /// </summary>
         int numCameras;
@@ -58,7 +59,7 @@ namespace Gaitcome2D
         private bool userIsDraggingSlider = false;
 
         // paid alternative
-        ImageToVideo converter;
+        //ImageToVideo converter;
 
         bool cam0, cam1;
 
@@ -115,10 +116,13 @@ namespace Gaitcome2D
 
         #endregion
 
+        
+
+       
 
         public MainWindow()
         {
-            InitializeComponent();
+            //InitializeComponent();
             this.Loaded += new RoutedEventHandler(MainWindow_Loaded);
             this.Closing += new System.ComponentModel.CancelEventHandler(MainWindow_Closing);
             timerRecording.Tick += new EventHandler(recording_Timer_Tick);
@@ -137,7 +141,7 @@ namespace Gaitcome2D
             contFrames = 0;
 
             // paid alternative
-            converter = new ImageToVideo();
+            //converter = new ImageToVideo();
 
             ImageSourceConverter c = new ImageSourceConverter();
             lstImgSour = new List<ImageSource>();
@@ -175,9 +179,9 @@ namespace Gaitcome2D
             lstPelvisAngles = new List<double>();
 
             initialFrameToProcess = 0;
-            txbInitialFrame.Text = initialFrameToProcess.ToString();
+            //txbInitialFrame.Text = initialFrameToProcess.ToString();
             finalFrameToProccess = 0;
-            txbLastFrame.Text = finalFrameToProccess.ToString();
+            //txbLastFrame.Text = finalFrameToProccess.ToString();
 
             isDetectingInitialContact = false;
 
@@ -194,7 +198,15 @@ namespace Gaitcome2D
 
             #endregion
 
+            #region Plotting TAB
+
+            
+
+
+            #endregion
         }
+
+       
 
         void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
@@ -412,40 +424,40 @@ namespace Gaitcome2D
         }
 
         //paid dll
-        public void createVideoFromImages()
-        {
-            // Activate the component
-            converter.RegistrationName = "demo";
-            converter.RegistrationKey = "demo";
+        //public void createVideoFromImages()
+        //{
+        //    // Activate the component
+        //    converter.RegistrationName = "demo";
+        //    converter.RegistrationKey = "demo";
 
-            // Enable transition effects for the first and last slide
-            converter.UseInEffectForFirstSlide = true;
-            converter.UseOutEffectForLastSlide = true;
+        //    // Enable transition effects for the first and last slide
+        //    converter.UseInEffectForFirstSlide = true;
+        //    converter.UseOutEffectForLastSlide = true;
 
-            // Add images and set slide durations and transition effects
-            Slide slide;
-            for (int i = 0; i < contFrames - 3; i++)
-            {
-                slide = converter.AddImageFromFileName(testMultiImagesFolder + cameraFolder + "01" + @"\img" + i + ".jpg");
-                //slide.InEffect = TransitionEffectType.teFade;
-                //slide.OutEffect = TransitionEffectType.teFade;
-                slide.Duration = 10;//1000/FPS; 
-            }
+        //    // Add images and set slide durations and transition effects
+        //    Slide slide;
+        //    for (int i = 0; i < contFrames - 3; i++)
+        //    {
+        //        slide = converter.AddImageFromFileName(testMultiImagesFolder + cameraFolder + "01" + @"\img" + i + ".jpg");
+        //        //slide.InEffect = TransitionEffectType.teFade;
+        //        //slide.OutEffect = TransitionEffectType.teFade;
+        //        slide.Duration = 10;//1000/FPS; 
+        //    }
 
-            // Set output video size
-            converter.OutputWidth = 640;
-            converter.OutputHeight = 480;
+        //    // Set output video size
+        //    converter.OutputWidth = 640;
+        //    converter.OutputHeight = 480;
 
-            // Set output video file name
-            converter.OutputVideoFileName = saveVideoPath + "colorVideo.avi";
+        //    // Set output video file name
+        //    converter.OutputVideoFileName = saveVideoPath + "colorVideo.avi";
 
-            // Run the conversion
-            converter.RunAndWait();
+        //    // Run the conversion
+        //    converter.RunAndWait();
 
-            // Open the result video file in default webm player
-            Process.Start(saveVideoPath + "colorVideo.avi");
+        //    // Open the result video file in default webm player
+        //    Process.Start(saveVideoPath + "colorVideo.avi");
 
-        }
+        //}
 
         #region AviFile Wrapper methods
         /* Source
@@ -715,16 +727,16 @@ namespace Gaitcome2D
             if (indexInfraredCamera == 0 || indexInfraredCamera == -1)
             {
                 if (cam0)
-                    bitmapSourceToBitmap(cameraImage0.Device.BitmapSource).Save(path + "0\\" + "img" + contFrames + ".jpg", ImageFormat.Jpeg);
+                    bitmapSourceToBitmap(cameraImage0.Device.BitmapSource).Save(path + "0\\" + "img" + contFrames + ".jpg", System.Drawing.Imaging.ImageFormat.Jpeg);
                 if (cam1)
-                    bitmapSourceToBitmap(cameraImage1.Device.BitmapSource).Save(path + "1\\" + "img" + contFrames + ".jpg", ImageFormat.Jpeg);
+                    bitmapSourceToBitmap(cameraImage1.Device.BitmapSource).Save(path + "1\\" + "img" + contFrames + ".jpg", System.Drawing.Imaging.ImageFormat.Jpeg);
             }
             else if (indexInfraredCamera == 1)
             {
                 if (cam0)
-                    bitmapSourceToBitmap(cameraImage0.Device.BitmapSource).Save(path + "1\\" + "img" + contFrames + ".jpg", ImageFormat.Jpeg);
+                    bitmapSourceToBitmap(cameraImage0.Device.BitmapSource).Save(path + "1\\" + "img" + contFrames + ".jpg", System.Drawing.Imaging.ImageFormat.Jpeg);
                 if (cam1)
-                    bitmapSourceToBitmap(cameraImage1.Device.BitmapSource).Save(path + "0\\" + "img" + contFrames + ".jpg", ImageFormat.Jpeg);
+                    bitmapSourceToBitmap(cameraImage1.Device.BitmapSource).Save(path + "0\\" + "img" + contFrames + ".jpg", System.Drawing.Imaging.ImageFormat.Jpeg);
             }
             contFrames++;
         }
@@ -1327,8 +1339,6 @@ namespace Gaitcome2D
                     tbxResultsAnkle.AppendText(Environment.NewLine);
                 }
             }
-
-
         }
 
         private void PrintAllAnglesDetected()
@@ -1350,6 +1360,7 @@ namespace Gaitcome2D
                 tbxResultsAnkle.AppendText(lstAnkleAngles[i].ToString());
                 tbxResultsAnkle.AppendText(Environment.NewLine);
             }
+
         }
 
         private void btnCaptureAngles_Click(Object sender, RoutedEventArgs e)
@@ -1358,7 +1369,7 @@ namespace Gaitcome2D
             {
                 if (initialFrameToProcess < finalFrameToProccess)
                 {
-                    ClearPairListsOfAnatomicalUnits();
+                    ClearAllResourcesForAllocatingAnatomicalUnitsInformation();
                     isCapturingAngles = true;
                     btnCaptureAngles.Content = "Capturar ángulos: ON";
 
@@ -1374,7 +1385,6 @@ namespace Gaitcome2D
             }
             else
             {
-
                 isCapturingAngles = false;
                 btnCaptureAngles.Content = "Capturar ángulos: OFF";
             }
@@ -1395,6 +1405,19 @@ namespace Gaitcome2D
                 btnInitialContactDetection.Content = "Deteccion de Contacto inicial : OFF";
             }
 
+        }
+
+        private void ClearAllResourcesForAllocatingAnatomicalUnitsInformation()
+        {
+            lstHipAngles.Clear();
+            lstKneeAngles.Clear();
+            lstAnkleAngles.Clear();
+            lstPelvisAngles.Clear();
+
+            //lsLstAnkle.ClearSelection();
+            //lsLstHip.ClearSelection();
+            //lsLstAnkle.ClearSelection();
+            //lsLstPelvis.ClearSelection();
         }
 
         private void btnSagittalPlane_Click(Object sender, RoutedEventArgs e)
@@ -1524,14 +1547,6 @@ namespace Gaitcome2D
             colorImagePlayer.Source = ToBitmapSource(infraredImgCpy);
             dataImagePlayer.Source = ToBitmapSource(grayImg);
 
-        }
-
-        private void ClearPairListsOfAnatomicalUnits()
-        {
-            lstHipAngles.Clear();
-            lstKneeAngles.Clear();
-            lstAnkleAngles.Clear();
-            lstPelvisAngles.Clear();
         }
 
         private void DrawByColorsRetrorefelctiveMarkerLabels(Dictionary<string, PointF> dicMarkers, Image<Bgr, byte> bgrImg, float radious,int thickness)
@@ -2166,7 +2181,573 @@ namespace Gaitcome2D
         }
         #endregion
 
-       
+      
+
+        private void Window_Closed_1(object sender, EventArgs e)
+        {
+            this.Close();
+        }
+
+        private void TabItem_MouseMove_1(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            //CreateOnClicki();
+        }
+
+        private void pressedTest(object sender, EventArgs e)
+        {
+            SimulateData();
+            
+            PlottingResults pr1 = new PlottingResults(lstAnkleAngles, lstKneeAngles, lstHipAngles, lstPelvisAngles);
+            GridGraphics.DataContext = pr1;
+
+            //PlottingResults pr2 = new PlottingResults(lstAnkleAngles, lstKneeAngles, lstHipAngles, lstPelvisAngles);
+            //ResultsView resultsView = new ResultsView();
+            //resultsView.DataContext = pr2;
+            //resultsView.Show();
+        }
+
+        private void SimulateData()
+        {
+            #region intput angles
+
+            double[] lstkneeangles = { 
+13.70632602,
+14.25693355,
+15.52448901,
+16.51486072,
+17.52174176,
+17.62899552,
+17.47182991,
+17.87217915,
+18.3781601 ,
+19.39507432,
+19.97474935,
+21.18163744,
+21.93255951,
+22.21751445,
+22.19637243,
+21.93069074,
+22.15353859,
+21.92811507,
+21.32897342,
+20.89153327,
+20.41619865,
+19.93657606,
+19.38596596,
+19.02235987,
+18.50483351,
+17.8907502 ,
+17.19938406,
+16.93688551,
+16.48110613,
+16.15487458,
+15.70243802,
+15.85617708,
+15.48434699,
+14.83603953,
+15.03592024,
+14.82570722,
+14.3942139 ,
+14.00626204,
+14.13115169,
+14.07627847,
+14.32117694,
+14.30735712,
+14.06475696,
+14.4790715 ,
+14.17656336,
+14.86105984,
+14.9882223 ,
+15.35935986,
+15.57538974,
+16.35339242,
+16.94216447,
+17.07406   ,
+18.29797422,
+18.66074221,
+19.82823119,
+20.64124306,
+21.0372776 ,
+22.54354785,
+23.7274491 ,
+24.96491131,
+26.35493257,
+27.32763533,
+29.58056482,
+31.32182572,
+32.85896594,
+35.27090666,
+37.54889874,
+40.22772042,
+43.16398734,
+46.48779822,
+49.36824337,
+52.37298795,
+55.98497137,
+58.13248938,
+60.99014125,
+63.53123734,
+65.74783659,
+67.53062628,
+68.8120082 ,
+69.5802922 ,
+70.16337877,
+69.87250507,
+70.13501496,
+69.30551355,
+69.04139792,
+68.80957728,
+67.07120752,
+65.87462881,
+64.27474686,
+62.49384799,
+60.5797449 ,
+57.93762478,
+55.46879756,
+52.42264464,
+49.26391043,
+46.07810994,
+42.21635459,
+39.10196872,
+34.48082193,
+31.2037531 ,
+26.99982442,
+23.62013846,
+20.6645453 ,
+17.71702778,
+15.41676547,
+13.80201922,
+12.51152748,
+12.74928749,
+12.65705189,
+13.14983614,
+13.95203887,
+14.2288268 ,
+13.73966356,
+12.62653173,
+12.38241732,
+12.66945859,
+12.54436459,
+13.3272386 ,
+12.79050519,
+13.22421975,
+13.43524955,
+12.88090998,
+13.18914375,
+12.44728901,
+12.84993863,
+12.81999889,
+12.06276893,
+12.19762352,
+11.1799366 ,
+10.85193395
+                                     };
+            double[] lsthipangles = {
+30.79402386,
+29.43643409,
+29.72018591,
+31.06302578,
+29.31049281,
+29.32742454,
+29.37988462,
+29.23465653,
+28.77170903,
+27.74189215,
+27.72099087,
+27.1350595 ,
+26.31682652,
+24.73871518,
+23.40532353,
+22.52031781,
+21.5803184 ,
+19.80594154,
+19.51789542,
+18.60371381,
+17.76400351,
+16.54697952,
+15.92475974,
+15.58781269,
+14.80810087,
+13.92545876,
+13.03537666,
+12.17325643,
+11.63534334,
+11.23685388,
+10.41892125,
+10.15904062,
+8.718623136,
+8.699487214,
+8.793750311,
+7.638342659,
+7.160626291,
+6.51652182 ,
+6.598930696,
+5.912973536,
+5.614096523,
+5.511477095,
+4.860763773,
+4.506374989,
+4.406753893,
+4.259369603,
+4.295300041,
+3.960136523,
+3.292398105,
+2.689781645,
+2.395125183,
+2.096342837,
+1.79482748 ,
+1.619114693,
+1.619114268,
+1.271669461,
+0.9516463625,
+1.018723373,
+0.8551758274,
+0.7990841875,
+0.7439472166,
+0.8904954587,
+1.650916585,
+1.580861266,
+2.283916414,
+2.60682385 ,
+2.495158881,
+4.26221736 ,
+4.987433159,
+5.70904797 ,
+7.339864252,
+8.53993242 ,
+10.24241579,
+10.98368062,
+12.76914087,
+14.04846082,
+15.6323595 ,
+17.02142987,
+17.48535735,
+19.39041906,
+20.79200906,
+20.82498046,
+23.02396031,
+23.5816099 ,
+23.98516373,
+25.45383476,
+26.85152533,
+27.49687906,
+29.34963093,
+29.6829991 ,
+29.94946881,
+31.40081887,
+31.84232127,
+32.16540085,
+32.3133921 ,
+32.36689403,
+32.19536066,
+32.79033475,
+32.45961514,
+32.23161543,
+30.63097891,
+30.37791856,
+29.59047939,
+29.02696795,
+28.30600152,
+28.39463484,
+27.48674119,
+27.40366762,
+27.20159371,
+26.90820657,
+26.44803504,
+25.38468542,
+25.07548214,
+23.9643903 ,
+22.6967485 ,
+22.19485569,
+21.54211746,
+20.18772678,
+20.2011797 ,
+18.79013665,
+18.14438536,
+17.13760088,
+16.51027512,
+15.46872238,
+14.25979811,
+14.14711025,
+12.5750738 ,
+11.87728485,
+10.68551838,
+9.686563529
+                                      };
+            double[] lstankleangles = {
+1.12303581  ,
+1.806520648 ,
+1.418049271 ,
+1.767478111 ,
+1.25691619  ,
+-1.140927406,
+-2.940240465,
+-3.34282199 ,
+-4.33587576 ,
+-3.958945534,
+-4.127332015,
+-3.27280738 ,
+-3.399803795,
+-1.740559552,
+-1.035179622,
+-0.9347528904,
+-0.09050063046,
+0.2689976704,
+0.8378789784,
+1.181796579 ,
+1.783412686 ,
+2.278786452 ,
+2.32711095  ,
+2.174327154 ,
+2.874361716 ,
+3.080336723 ,
+3.375083802 ,
+3.256196542 ,
+3.156665998 ,
+3.498230422 ,
+4.261007706 ,
+4.304228304 ,
+5.198582028 ,
+4.9883067   ,
+5.602563227 ,
+6.003082024 ,
+5.695340876 ,
+6.24916348  ,
+6.54845225  ,
+7.509132881 ,
+8.009601147 ,
+7.976843625 ,
+9.15446587  ,
+8.851654725 ,
+8.953486112 ,
+10.03099395 ,
+9.691195387 ,
+10.7820713  ,
+11.28127468 ,
+11.48011145 ,
+11.99286052 ,
+12.00085726 ,
+13.01371215 ,
+13.30456392 ,
+13.34868887 ,
+13.74314209 ,
+13.4577201  ,
+14.11886511 ,
+14.00695439 ,
+13.41678625 ,
+13.02219953 ,
+12.1095351  ,
+11.55565717 ,
+10.45471722 ,
+9.126317887 ,
+7.422480195 ,
+5.605593858 ,
+3.891162663 ,
+2.138478835 ,
+0.6741698087,
+-1.600587145,
+-3.729343626,
+-5.666744933,
+-8.267992517,
+-9.572081409,
+-10.18055082,
+-10.12963098,
+-8.801526731,
+-8.953291338,
+-7.255973309,
+-6.139007165,
+-5.468495626,
+-4.037341139,
+-2.859198408,
+-1.427282437,
+-0.2009456467,
+2.254468102 ,
+0.985420434 ,
+2.203329853 ,
+2.888109847 ,
+5.301708059 ,
+6.057592604 ,
+6.088945458 ,
+5.806114069 ,
+4.027199914 ,
+4.71199731  ,
+4.041946943 ,
+3.584646118 ,
+2.519413633 ,
+1.918002471 ,
+1.953972714 ,
+2.780276421 ,
+2.41000271  ,
+2.101814871 ,
+1.783806518 ,
+2.506786646 ,
+2.123661459 ,
+3.091383564 ,
+2.554361794 ,
+2.848422208 ,
+2.798624654 ,
+0.5207864736,
+-1.878250332,
+-3.835404495,
+-5.215175812,
+-5.841785102,
+-6.205055038,
+-5.592460378,
+-6.38940429 ,
+-5.199146173,
+-4.625218258,
+-4.383988111,
+-4.116066915,
+-3.805689419,
+-2.900084669,
+-2.159602168,
+-2.637913861,
+-1.372610366,
+-1.620619078,
+-0.1049756016
+                                      };
+            double[] lstpelvisangles = {
+                                 5.886005637,
+4.661294116,
+4.763641691,
+6.46982006 ,
+4.982419697,
+5.194428985,
+5.710593053,
+5.710593053,
+5.599318136,
+4.569486006,
+4.993744254,
+4.484610274,
+3.925899102,
+4.356975071,
+3.778191575,
+3.708428315,
+3.460189432,
+2.374977574,
+3.15071253 ,
+3.122130396,
+3.122130396,
+2.849472282,
+3.094057949,
+3.576334375,
+3.576334375,
+3.513750433,
+3.576334375,
+3.366463446,
+3.544766431,
+3.81407083 ,
+3.81407296 ,
+3.840953692,
+3.306754217,
+4.085616476,
+4.59425321 ,
+4.049579819,
+4.367923769,
+4.513988704,
+5.057248461,
+5.013113874,
+5.013113874,
+5.511477095,
+5.463842713,
+5.511473271,
+6.009002941,
+6.061788826,
+6.505619063,
+6.562698745,
+6.505630441,
+6.009017308,
+6.009005913,
+6.340195376,
+6.009005913,
+6.449534634,
+6.449534634,
+6.284783336,
+6.562698745,
+6.449534634,
+6.505626274,
+6.449534634,
+6.394397663,
+6.741371943,
+6.881723952,
+6.394412043,
+6.881723952,
+6.394397663,
+5.686045609,
+6.449534634,
+6.176794025,
+5.511477095,
+5.957131185,
+5.785558043,
+5.511477095,
+5.057248461,
+5.057248461,
+4.553767776,
+4.553767776,
+4.513984874,
+3.544766431,
+4.014167978,
+3.979382353,
+3.01278765 ,
+3.715288032,
+3.278981464,
+2.511363301,
+2.511363301,
+3.01278765 ,
+2.468117914,
+3.483274231,
+2.986637144,
+2.468117914,
+3.483267627,
+3.483271462,
+3.453316295,
+3.513750433,
+3.483271462,
+3.483271462,
+3.94518617 ,
+4.398701459,
+4.436474339,
+3.625200177,
+3.94518617 ,
+3.94518617 ,
+3.878524799,
+3.878524799,
+4.361572623,
+3.846021883,
+3.814074664,
+3.846030205,
+3.814074664,
+3.561529585,
+3.04781737 ,
+3.310941548,
+3.338868466,
+2.815556695,
+2.815556695,
+2.792702475,
+1.877877573,
+2.770215728,
+1.862621026,
+1.832839485,
+1.847610142,
+1.847610142,
+1.81830308 ,
+1.132176722,
+1.789910608,
+1.342620639,
+1.342620426,
+1.353191936,
+1.332216102
+                                 };
+            #endregion
+            for (int i = 0; i < lstpelvisangles.Count(); i++)
+            {
+                lstPelvisAngles.Add(lstpelvisangles[i]);
+                lstAnkleAngles.Add(lstankleangles[i]);
+                lstHipAngles.Add(lsthipangles[i]);
+                lstKneeAngles.Add(lstkneeangles[i]);
+
+            }
+        }
 
     }
 }

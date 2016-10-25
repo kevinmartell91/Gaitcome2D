@@ -1,12 +1,17 @@
 ﻿<Window x:Class="Gaitcome2D.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:oxy="http://oxyplot.org/wpf"
         xmlns:local="clr-namespace:Gaitcome2D"
         xmlns:loc="clr-namespace:Gaitcome2D"
         Title="Gaitcom 2D" Height="680" Width="1200" Foreground="Black"
-        ResizeMode="CanResizeWithGrip" WindowStartupLocation="CenterScreen">
+        ResizeMode="CanResizeWithGrip" WindowStartupLocation="CenterScreen" Closed="Window_Closed_1">
     <!-- Title="Gaitcom 2D" Height="540" Width="859.701" Background="White" ResizeMode="NoResize"> -->
+    <Window.DataContext>
+        <local:MainWindow/>
+    </Window.DataContext>
     <Grid>
+        
 
         <TabControl Background="Black">
 
@@ -78,7 +83,6 @@
                                 <Button x:Name="btnForzeInitCameras" Content="Importar" Visibility="Visible" 
                                              Margin="5,10,79,0" Click="btnForzeInitCameras_Click" Height="22" VerticalAlignment="Top"/>
 
-
                             </GroupBox>
 
                             <GroupBox Header="Opciones de Grabación" HorizontalAlignment="Left" Margin="5" Foreground="White" Width="244">
@@ -91,6 +95,9 @@
                                     <Button x:Name="btnCapture" Content="Grabar" Click="btnCapture_Click"  
                                             HorizontalAlignment="Left"
 			                                Margin="14,26,0,0" VerticalAlignment="Top"/>
+
+                                    <Button Click="pressedTest" Content="Graficar" Margin="73,31,71,16"/>
+
 
                                     <!--<Button x:Name="btnStopCapture" Content="Stop" Click="btnStopCapture_Click"  
                                             HorizontalAlignment="Left"
@@ -252,6 +259,39 @@
                         </StackPanel>
 
                     </StackPanel>
+
+                </Grid>
+
+            </TabItem>
+            
+            <!-- Results TAB -->
+            <TabItem Header="Resultados" FontSize="12" MouseMove="TabItem_MouseMove_1">
+                <!--<TabItem.DataContext>
+                    <local:PlottingResults/>
+                </TabItem.DataContext>-->
+                
+                <Grid x:Name="GridGraphics">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <Button Grid.Column="1" Grid.Row="1" >
+                            <Button.Background>
+                                <ImageBrush ImageSource="Pictures/img.JPG"/>
+                            </Button.Background>
+                            <TextBlock>Blablabla</TextBlock>
+                    </Button>
+                    <oxy:PlotView Model="{Binding pmHipGraphic}" Grid.Column="0" Grid.Row="0"/>
+                    <oxy:PlotView Model="{Binding pmPelvisGraphic}" Grid.Column="0" Grid.Row="1"/>
+                    <oxy:PlotView Model="{Binding pmAnkleGraphic}" Grid.Column="1" Grid.Row="0"/>
+                    <oxy:PlotView Model="{Binding pmKneeGraphic}" Grid.Column="1" Grid.Row="1" />
+
 
                 </Grid>
 
