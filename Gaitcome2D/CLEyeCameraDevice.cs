@@ -22,6 +22,8 @@ using System.Windows.Media.Imaging;
 using System.Windows.Controls;
 using System.Windows;
 using System.Windows.Media;
+using System.Drawing;
+using System.Drawing.Imaging;
 
 namespace Gaitcome2D
 {
@@ -70,7 +72,7 @@ namespace Gaitcome2D
         CLEYE_LENSBRIGHTNESS		// [-500, 500]
     };
     #endregion
-  
+
     public class CLEyeCameraDevice : DependencyObject, IDisposable
     {
         #region [ CLEyeMulticam Imports ]
@@ -113,6 +115,12 @@ namespace Gaitcome2D
         private IntPtr _camera = IntPtr.Zero;
         private bool _running;
         private Thread _workerThread;
+        #endregion
+
+        #region [ Public ]
+        public string strPath { get; set; }
+        public bool isRecording { get; set; }
+        public int intCountFrames { get; set; }
         #endregion
 
         #region [ Events ]
@@ -408,6 +416,11 @@ namespace Gaitcome2D
             Framerate = 15;
             ColorMode = default(CLEyeCameraColorMode);
             Resolution = default(CLEyeCameraResolution);
+
+            // set values 
+            isRecording = false;
+            intCountFrames = 0;
+
         }
 
         ~CLEyeCameraDevice()
@@ -475,9 +488,12 @@ namespace Gaitcome2D
             }
         }
 
+        //public void Start()
         public void Start()
         {
             _running = true;
+
+            //_workerThread = new Thread(new ThreadStart(CaptureThread));
             _workerThread = new Thread(new ThreadStart(CaptureThread));
             _workerThread.Start();
         }
@@ -493,6 +509,9 @@ namespace Gaitcome2D
         {
             CLEyeCameraStart(_camera);
             int i = 0;
+
+            bool isGettingDesface = false;
+
             while (_running)
             {
                 if (CLEyeCameraGetFrame(_camera, _map, 500))
@@ -501,12 +520,40 @@ namespace Gaitcome2D
                     Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Render, (SendOrPostCallback)delegate
                     {
                         BitmapSource.Invalidate();
+                        if (isRecording)
+                        {
+                            string strTemPath = strPath + intCountFrames.ToString() + ".jpg";
+                            bitmapSourceToBitmap(BitmapSource).Save(strTemPath,
+                                                                    System.Drawing.Imaging.ImageFormat.Jpeg);
+                            intCountFrames++;
+                        }
                     }, null);
                     i++;
                 }
             }
             CLEyeCameraStop(_camera);
             CLEyeDestroyCamera(_camera);
+        }
+        #endregion
+
+        #region [ Help Methods ]
+        public Bitmap bitmapSourceToBitmap(BitmapSource source)
+        {
+            Bitmap bmp = new Bitmap(
+              source.PixelWidth,
+              source.PixelHeight,
+              System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+            BitmapData data = bmp.LockBits(
+              new System.Drawing.Rectangle(System.Drawing.Point.Empty, bmp.Size),
+              ImageLockMode.WriteOnly,
+              System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+            source.CopyPixels(
+              Int32Rect.Empty,
+              data.Scan0,
+              data.Height * data.Stride,
+              data.Stride);
+            bmp.UnlockBits(data);
+            return bmp;
         }
         #endregion
     }

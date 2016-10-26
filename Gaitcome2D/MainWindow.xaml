@@ -4,16 +4,16 @@
         xmlns:oxy="http://oxyplot.org/wpf"
         xmlns:local="clr-namespace:Gaitcome2D"
         xmlns:loc="clr-namespace:Gaitcome2D"
-        Title="Gaitcom 2D" Height="680" Width="1200" Foreground="Black"
+        Title="Gaitcome 2D" Height="680" Width="1200" Foreground="Black"
         ResizeMode="CanResizeWithGrip" WindowStartupLocation="CenterScreen" Closed="Window_Closed_1">
     <!-- Title="Gaitcom 2D" Height="540" Width="859.701" Background="White" ResizeMode="NoResize"> -->
     <Window.DataContext>
         <local:MainWindow/>
     </Window.DataContext>
     <Grid>
-        
 
-        <TabControl Background="Black">
+
+        <TabControl Background="White">
 
             <!-- Record TAB-->
             <TabItem Header="Record" FontSize="12">
@@ -43,7 +43,7 @@
 
                                 <StackPanel Orientation="Vertical" Grid.Column="0">
                                     <TextBlock FontSize="18" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Top" TextWrapping="Wrap">Color Camera</TextBlock>
-                                    <local:CLEyeCameraImage x:Name="cameraImage0" Framerate="75" ColorMode="CLEYE_COLOR_RAW" Resolution="CLEYE_VGA"  Margin="5" HorizontalAlignment="Center" VerticalAlignment="Top" />
+                                    <local:CLEyeCameraImage x:Name="cameraImage0" Framerate="75" ColorMode="CLEYE_COLOR_RAW" Resolution="CLEYE_VGA"  Margin="0" HorizontalAlignment="Center" VerticalAlignment="Top" />
 
                                 </StackPanel>
 
@@ -51,7 +51,7 @@
 
                                 <StackPanel Orientation="Vertical" Grid.Column="2">
                                     <TextBlock FontSize="18" Foreground="White"  HorizontalAlignment="Center" VerticalAlignment="Top" TextWrapping="Wrap">Infrared Camera</TextBlock>
-                                    <local:CLEyeCameraImage x:Name="cameraImage1"  Framerate="10" ColorMode="CLEYE_MONO_RAW" Resolution="CLEYE_VGA" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Top"/>
+                                    <local:CLEyeCameraImage x:Name="cameraImage1"  Framerate="75" ColorMode="CLEYE_COLOR_RAW" Resolution="CLEYE_VGA" Margin="0" HorizontalAlignment="Center" VerticalAlignment="Top"/>
                                 </StackPanel>
 
                             </Grid>
@@ -92,11 +92,11 @@
                                     <Button x:Name="btnRecordingSavePath" HorizontalAlignment="Left" Content="..." 
                                             Margin="182,10,10,40" Click="btnRecordingSavePath_Click"   Width="23"/>
 
-                                    <Button x:Name="btnCapture" Content="Grabar" Click="btnCapture_Click"  
+                                    <Button x:Name="btnCapture" Content="Grabar" Click="btnCapture_Click" 
                                             HorizontalAlignment="Left"
 			                                Margin="14,26,0,0" VerticalAlignment="Top"/>
 
-                                    <Button Click="pressedTest" Content="Graficar" Margin="73,31,71,16"/>
+                                    <Button Click="btnGraficarTest_Click" Content="Graficar" Margin="73,31,71,16"/>
 
 
                                     <!--<Button x:Name="btnStopCapture" Content="Stop" Click="btnStopCapture_Click"  
@@ -127,19 +127,6 @@
                         <ColumnDefinition Width="5"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-
-                    <Slider x:Name="sliProgress" Visibility="Collapsed" 
-                            Thumb.DragStarted="sliProgress_DragStarted"  
-                            Thumb.DragCompleted="sliProgress_DragCompleted" 
-                            ValueChanged="sliProgress_ValueChanged"
-                            Margin="82,-86,101,634" Grid.Column="1" />
-                    <MediaElement x:Name="Media" 
-                    		LoadedBehavior="Manual"
-                    		MediaOpened="Media_MediaOpened"
-                    		MediaEnded="Media_MediaEnded"
-                    		MediaFailed="Media_MediaFailed" Height="240" 
-                            Visibility="Collapsed" 
-                            VerticalAlignment="Top" Margin="11,-235,154,0" Grid.Column="1"/>
 
                     <!-- Image Player -->
                     <StackPanel Orientation="Vertical" Margin="5">
@@ -172,11 +159,11 @@
                                 MouseRightButtonDown="sliImageProgress_MouseRightButtonDown" 
                                 MouseRightButtonUp="sliImageProgress_MouseRightButtonUp"/>
 
-                       
+
                         <!-- Player buttons options -->
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
 
-                            
+
                             <Button x:Name="btnOpen" Content="Open" Click="btnOpen_Click"  Margin="5" FontSize="12"/>
                             <TextBlock Width="210"></TextBlock>
                             <Button x:Name="btnStop" Content="Stop" Click="btnStop_Click" Margin="5" FontSize="12"/>
@@ -190,15 +177,15 @@
                             <TextBlock Width="90"></TextBlock>
 
                             <TextBlock FontSize="12" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White">Speed</TextBlock>
-                            <Slider x:Name="SpeedSlider"
+                            <Slider x:Name="sliImagePlayerSpeed"
                     			Value="0.6" Minimum="0.1" Maximum="1"
-                    			ValueChanged="Speed_ValueChanged"
+                    			ValueChanged="sliImagePlayerSpeed_ValueChanged"
                     			TickPlacement="Both"
                     			IsSnapToTickEnabled="True"  Ticks="0.1, 0.35, 0.6, 0.85, 1" Height="31" Width="112" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5,0"/>
 
                         </StackPanel>
 
-                       
+
 
 
                     </StackPanel>
@@ -224,13 +211,13 @@
 
                             <StackPanel Orientation="Vertical" Margin="5">
                                 <TextBlock  x:Name="txtMinSizeBlobValue" FontSize="10" Height="19"  Margin="5" Foreground="White">MinSizeBlob</TextBlock>
-                                <Slider x:Name="sliderMinSizeBlob" Value="3" Minimum="1" Maximum="16"  ValueChanged="sliderMinSizeBlob_ValueChanged"/>
+                                <Slider x:Name="sliderMinSizeBlob" Value="3" Minimum="1" Maximum="16"  ValueChanged="sliMinSizeBlob_ValueChanged"/>
                                 <TextBlock x:Name="txtMaxSizeBlobValue" FontSize="10" Height="19" Margin="5" Foreground="White">MaxSizeBlob</TextBlock>
-                                <Slider x:Name="sliderMaxSizeBlob" Value="20" Minimum="1" Maximum="80" ValueChanged="sliderMaxSizeBlob_ValueChanged"/>
+                                <Slider x:Name="sliderMaxSizeBlob" Value="20" Minimum="1" Maximum="80" ValueChanged="sliMaxSizeBlob_ValueChanged"/>
                                 <TextBlock x:Name="txtMinUmbralValue" FontSize="10" Height="19" Margin="5" Foreground="White">MinUmbralValue</TextBlock>
-                                <Slider x:Name="sliderMinUmbral" Value="74" Minimum="0" Maximum="255" ValueChanged="sliderMinUmbral_ValueChanged"/>
+                                <Slider x:Name="sliderMinUmbral" Value="74" Minimum="0" Maximum="255" ValueChanged="sliMinUmbral_ValueChanged"/>
                                 <TextBlock x:Name="txtMaxUmbralValue" FontSize="10" Height="19" Margin="5" Foreground="White">MaxUmbralValue</TextBlock>
-                                <Slider x:Name="sliderMaxUmbral" Value="100" Minimum="0" Maximum="255" ValueChanged="sliderMaxUmbral_ValueChanged" Height="24"/>
+                                <Slider x:Name="sliderMaxUmbral" Value="100" Minimum="0" Maximum="255" ValueChanged="sliMaxUmbral_ValueChanged" Height="24"/>
                             </StackPanel>
 
                         </StackPanel>
@@ -263,13 +250,10 @@
                 </Grid>
 
             </TabItem>
-            
+
             <!-- Results TAB -->
-            <TabItem Header="Resultados" FontSize="12" MouseMove="TabItem_MouseMove_1">
-                <!--<TabItem.DataContext>
-                    <local:PlottingResults/>
-                </TabItem.DataContext>-->
-                
+            <TabItem Header="Resultados" FontSize="12">
+
                 <Grid x:Name="GridGraphics">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -280,12 +264,12 @@
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
-                    
+
                     <Button Grid.Column="1" Grid.Row="1" >
-                            <Button.Background>
-                                <ImageBrush ImageSource="Pictures/img.JPG"/>
-                            </Button.Background>
-                            <TextBlock>Blablabla</TextBlock>
+                        <Button.Background>
+                            <ImageBrush ImageSource="Pictures/img.JPG"/>
+                        </Button.Background>
+                        <TextBlock>Blablabla</TextBlock>
                     </Button>
                     <oxy:PlotView Model="{Binding pmHipGraphic}" Grid.Column="0" Grid.Row="0"/>
                     <oxy:PlotView Model="{Binding pmPelvisGraphic}" Grid.Column="0" Grid.Row="1"/>
