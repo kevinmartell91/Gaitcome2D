@@ -13,7 +13,7 @@
     <Grid>
 
 
-        <TabControl Background="White">
+        <TabControl Background="Black">
 
             <!-- Record TAB-->
             <TabItem Header="Record" FontSize="12">
@@ -91,7 +91,8 @@
 		                                    Margin="10,5,0,0" Foreground="White"/>
                                     <Button x:Name="btnRecordingSavePath" HorizontalAlignment="Left" Content="..." 
                                             Margin="182,10,10,40" Click="btnRecordingSavePath_Click"   Width="23"/>
-
+                                    <!-- This functionality is not used any more since EkEN camera replace the PSEYE &-->
+                                    <!-- thrid program extracts the frames from .MOV file(EKEN default video format)-->
                                     <Button x:Name="btnCapture" Content="Grabar" Click="btnCapture_Click" 
                                             HorizontalAlignment="Left"
 			                                Margin="14,26,0,0" VerticalAlignment="Top"/>

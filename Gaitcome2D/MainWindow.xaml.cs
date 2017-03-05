@@ -57,7 +57,7 @@ namespace Gaitcome2D
         private bool userIsDraggingSlider = false;
 
 
-        bool cam0, cam1;
+        bool cam0, cam1 ,demoData;
 
         #region imagePlayer
         DispatcherTimer timerImagePlayer = new DispatcherTimer();
@@ -120,6 +120,8 @@ namespace Gaitcome2D
             cameraFolder = @"cam";
             cam0 = cam1 = false;
             contFrames = 0;
+
+            demoData = true;
 
             // paid alternative
             //converter = new ImageToVideo();
@@ -268,6 +270,10 @@ namespace Gaitcome2D
             getAllFramesFromVideo();
         }
 
+        /*
+          This functionality is not used any more since EkEN camera replace the PSEYE &
+          thrid program extracts the frames from .MOV file(EKEN default video format)
+        */
         private void btnCapture_Click(object sender, RoutedEventArgs e)
         {
             if (isRecordingPathSelected)
@@ -333,15 +339,17 @@ namespace Gaitcome2D
 
         private void btnGraficarTest_Click(object sender, EventArgs e)
         {
-            //SimulateData();
+            if (demoData)
+            {
+                SimulateData();
+            }
+                PlottingResults pr1 = new PlottingResults(lstAnkleAngles, lstKneeAngles, lstHipAngles, lstPelvisAngles);
+                GridGraphics.DataContext = pr1;
 
-            PlottingResults pr1 = new PlottingResults(lstAnkleAngles, lstKneeAngles, lstHipAngles, lstPelvisAngles);
-            GridGraphics.DataContext = pr1;
-
-            PlottingResults pr2 = new PlottingResults(lstAnkleAngles, lstKneeAngles, lstHipAngles, lstPelvisAngles);
-            ResultsView resultsView = new ResultsView();
-            resultsView.DataContext = pr2;
-            resultsView.Show(); 
+                PlottingResults pr2 = new PlottingResults(lstAnkleAngles, lstKneeAngles, lstHipAngles, lstPelvisAngles);
+                ResultsView resultsView = new ResultsView();
+                resultsView.DataContext = pr2;
+                resultsView.Show();
         }
 
         private int GetIndexInfraredCamera()
@@ -391,7 +399,10 @@ namespace Gaitcome2D
             return true;
         }
 
-        // Not used any more , But CIO the Business logic to add btnCaptue()
+        /*
+          This functionality is not used any more since EkEN camera replace the PSEYE &
+          thrid program extracts the frames from .MOV file(EKEN default video format)
+        */
         private void allCamerasWriteJpeg(string path)
         {
             if (indexInfraredCamera == 0 || indexInfraredCamera == -1)
@@ -561,7 +572,10 @@ namespace Gaitcome2D
                 infraredBgrImage = new Image<Bgr, byte>(220, 140, new Bgr(System.Drawing.Color.Black));
                 colorImage = new Image<Bgr, byte>(320, 240, new Bgr(System.Drawing.Color.Black));
 
-                if (cam0) infraredBgrImage = new Image<Bgr, Byte>(recordingVideoPath + "\\" + cameraFolder + @"0\\" + "img" + imagePlayervalue.ToString() + ".jpg");
+                //if (cam0) infraredBgrImage = new Image<Bgr, Byte>(recordingVideoPath + "\\" + cameraFolder + @"0\\" + "img" + imagePlayervalue.ToString() + ".jpg");
+                StringBuilder sIndexFourDigits = getStringFourDigitIndex(imagePlayervalue);
+                if (cam0) infraredBgrImage = new Image<Bgr, Byte>(recordingVideoPath + "\\" + cameraFolder + @"0\\" + "img " + sIndexFourDigits.ToString() + ".jpg");
+                
                 if (cam1) colorImage = new Image<Bgr, Byte>(recordingVideoPath + "\\" + cameraFolder + @"1\\" + "img" + imagePlayervalue.ToString() + ".jpg");
 
                 //if (imagePlayervalue % 2 == 0)
@@ -575,6 +589,29 @@ namespace Gaitcome2D
                 ImageProcessToGaitAngles(infraredBgrImage, colorImage, isCapturingAngles);
             }
         }
+
+        private StringBuilder getStringFourDigitIndex(int imagePlayervalue)
+        {
+            int iCont = 4;// calculate this number from the lenght of the original folder
+            int iDigit = imagePlayervalue;
+            StringBuilder sIndex = new StringBuilder();
+
+            do {
+                iCont--;
+                imagePlayervalue /= 10;
+            } while (imagePlayervalue > 0);
+
+            for (int i = 0; i < iCont; i++)
+            {
+                sIndex.Append("0");
+            }
+            sIndex.Append(iDigit.ToString());
+
+            return sIndex;
+
+        }
+
+       
 
         private void SimulateRightSagittalPlane()
         {
@@ -619,12 +656,19 @@ namespace Gaitcome2D
                     if (!string.IsNullOrWhiteSpace(fbd.SelectedPath))
                     {
                         recordingVideoPath = fbd.SelectedPath;
-                        UpdateImagePlayerAtributtes(recordingVideoPath, 1, fbd.SelectedPath.Length);
+                        UpdateImagePlayerAtributtes(recordingVideoPath, 
+                                                    1,
+                                                    fbd.SelectedPath.Length);
                     }
                 }
                 else
                 {
-                    System.Windows.Forms.MessageBox.Show("Desea abrir otro folder de imagenes", "Advertencia", MessageBoxButtons.OKCancel, MessageBoxIcon.Exclamation);
+                    System.Windows.Forms.MessageBox.Show(
+                        "Desea abrir otro folder de imagenes", 
+                        "Advertencia",
+                        MessageBoxButtons.OKCancel, 
+                        MessageBoxIcon.Exclamation);
+
                     isImagePlayerDataLoaded = false;
                     btnOpen_Click(sender, e);
                     //save work of therapist
@@ -778,6 +822,8 @@ namespace Gaitcome2D
 
         private void btnCaptureAngles_Click(Object sender, RoutedEventArgs e)
         {
+            //pool
+            System.Windows.MessageBox.Show(getStringFourDigitIndex(1000).ToString());
             if (!isCapturingAngles)
             {
                 if (initialFrameToProcess < finalFrameToProccess)
@@ -2313,6 +2359,7 @@ namespace Gaitcome2D
         public void getAllFramesFromVideo()
         {
             AviManager aviManager = new AviManager(@"C:\Users\kevin\Desktop\test2.avi", true);
+            //AviManager aviManager = new AviManager(@"C:\Users\kevin\Desktop\FHD0024.avi", true);
             VideoStream stream = aviManager.GetVideoStream();
             stream.GetFrameOpen();
 
@@ -2324,6 +2371,7 @@ namespace Gaitcome2D
             }
 
             stream.GetFrameClose();
+            System.Windows.MessageBox.Show("Image extraction completed!");
         }
         public AviManager CopyToVideo(int startAtSecond, int stopAtSecond)
         {

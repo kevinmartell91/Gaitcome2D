@@ -69,13 +69,19 @@ namespace Gaitcome2D
             pmHipGraphic.Series.Add(lsLstNormalHipAngles);
             pmHipGraphic.Series.Add(lsLstHip);
 
-
+            exportToSVG(pmAnkleGraphic);
         }
 
         private void SetLineSeriesAngles(List<double> lstAnkleAngles, List<double> lstKneeAngles, List<double> lstHipAngles, List<double> lstPelvisAngles)
         {
+
+            int j = 0;
+            int lengthInt = 3;
+
             int lengthAngles = lstAnkleAngles.Count();
-            double dx = 100 *1.0 / lengthAngles;
+            double dx = 101 * 1.0 / lengthAngles;
+            double dxng = 101 * 1.0 / (lengthAngles * 1.0 / lengthInt);
+
 
             //Setting MIN & MAX Y_axis
             lsLstKneeAxisXY.Points.Add(new DataPoint(0,90 ));
@@ -89,12 +95,14 @@ namespace Gaitcome2D
 
             for (int i = 0; i < lengthAngles; i++)
             {
-                if (true)//i % 10 == 0)
+                if (i % lengthInt == 0)
                 {
-                    lsLstNormalKneeAngles.Points.Add(new DataPoint(i * dx, lstKneeAngles[i]));
-                    lsLstNormalAnkleAngles.Points.Add(new DataPoint(i * dx, lstAnkleAngles[i]));
-                    lsLstNormalPelvisAngles.Points.Add(new DataPoint(i * dx, lstPelvisAngles[i]));
-                    lsLstNormalHipAngles.Points.Add(new DataPoint(i * dx, lstHipAngles[i]));
+                    lsLstNormalKneeAngles.Points.Add(new DataPoint(j * dxng, lstKneeAngles[i]));
+                    lsLstNormalAnkleAngles.Points.Add(new DataPoint(j * dxng, lstAnkleAngles[i]));
+                    lsLstNormalPelvisAngles.Points.Add(new DataPoint(j * dxng, lstPelvisAngles[i]));
+                    lsLstNormalHipAngles.Points.Add(new DataPoint(j * dxng, lstHipAngles[i]));
+
+                    j++;
                 }
 
                 lsLstKnee.Points.Add(new DataPoint(i * dx, lstKneeAngles[i]));
@@ -102,6 +110,8 @@ namespace Gaitcome2D
                 lsLstPelvis.Points.Add(new DataPoint(i * dx, lstPelvisAngles[i]));
                 lsLstHip.Points.Add(new DataPoint(i * dx, lstHipAngles[i]));
             }
+
+            j++;
         }
 
         private void SetLineSeriesAttributes()
@@ -253,6 +263,15 @@ namespace Gaitcome2D
             };
         }
 
+        private void exportToSVG(PlotModel  plotModel)
+        {
+            using (var stream = System.IO.File.Create(@"D:\Projects\Gaitcom\Gaitcome2D\img.svg"))
+            {
+                var exporter = new SvgExporter { Width = 600, Height = 400 };
+                exporter.Export(plotModel, stream);
+            }
+        }
+        
     }
     public class Obj
     {
